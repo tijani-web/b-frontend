@@ -27,7 +27,7 @@ export const TradingMedia = (props: TradingMediaProps) => {
             className="box-border caret-transparent h-full max-w-full object-cover object-[50%_0%] outline-[3px] pointer-events-none absolute no-underline align-baseline w-full z-[1] inset-0"
           >
             <source
-              src="https://BlofinPrime.com/s2/frontend/_home_website/_next/static/home-public-static/videos/home/tradingYourWay/copy-trade.mp4"
+              src="https://s2.blofin.com/frontend/_home_website/_next/static/home-public-static/videos/home/tradingYourWay/copy-trade.mp4"
               type="video/mp4"
               className="caret-transparent text-black leading-[normal] outline-[3px] pointer-events-auto no-underline font-times_new_roman"
             />

@@ -28,7 +28,7 @@ export const AssetProtection = () => {
               className="box-border caret-transparent h-full max-w-full outline-[3px] pointer-events-none absolute no-underline align-baseline w-full z-[1] inset-0"
             >
               <source
-                src="https://BlofinPrime.com/s2/frontend/_home_website/_next/static/home-public-static/videos/home/securityProof/main.webm"
+                src="https://s2.blofin.com/frontend/_home_website/_next/static/home-public-static/videos/home/securityProof/main.webm"
                 type="video/webm"
                 className="caret-transparent text-black leading-[normal] outline-[3px] pointer-events-auto no-underline font-times_new_roman"
               />
