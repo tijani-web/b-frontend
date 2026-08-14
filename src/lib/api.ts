@@ -1,5 +1,9 @@
 // Centralized API client — all requests go through here
-const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api';
+const BASE = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+  ? 'https://b-backend-kv4v.onrender.com/api'
+  : 'http://localhost:5000/api';
 
 function getToken(): string {
   return localStorage.getItem('token') || '';
