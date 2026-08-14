@@ -1,5 +1,5 @@
 // Centralized API client — all requests go through here
-const BASE = 'http://localhost:5000/api';
+const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api';
 
 function getToken(): string {
   return localStorage.getItem('token') || '';
