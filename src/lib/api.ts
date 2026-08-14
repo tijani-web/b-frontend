@@ -1,9 +1,8 @@
 // Centralized API client — all requests go through here
-const BASE = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : typeof window !== 'undefined' && window.location.hostname !== 'localhost'
-  ? 'https://b-backend-kv4v.onrender.com/api'
-  : 'http://localhost:5000/api';
+// import.meta.env.DEV is true during `npm run dev`, false in production builds
+const BASE = import.meta.env.DEV
+  ? 'http://localhost:5000/api'
+  : 'https://b-backend-kv4v.onrender.com/api';
 
 function getToken(): string {
   return localStorage.getItem('token') || '';
@@ -42,8 +41,16 @@ async function request<T>(
     body: isFormData ? (body as FormData) : body ? JSON.stringify(body) : undefined,
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Request failed');
+  // Safely parse response — server might return HTML error pages (e.g. 405, 502)
+  let data: any = {};
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try { data = await res.json(); } catch { data = {}; }
+  } else {
+    await res.text(); // consume body to prevent memory leaks
+  }
+
+  if (!res.ok) throw new Error(data.error || 'Something went wrong. Please try again.');
   return data;
 }
 
