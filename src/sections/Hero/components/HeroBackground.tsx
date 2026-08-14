@@ -8,10 +8,10 @@ export const HeroBackground = () => {
       />
       <video
         poster="https://c.animaapp.com/ms9b4yl7eEtjhI/assets/registration-hero-wingsuit_2880_860.webp"
-        autoplay=""
-        muted=""
-        playsInline=""
-        loop=""
+        autoPlay
+        muted
+        playsInline
+        loop
         preload="auto"
         className="box-border caret-transparent h-full max-w-full object-cover outline-[3px] absolute no-underline align-baseline w-full z-[1] inset-0"
       >
