@@ -1,53 +1,82 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+
+const NAV_ITEMS = [
+  {
+    label: 'Explore',
+    subItems: [
+      { label: 'Markets', link: '/markets' },
+      { label: 'Crypto', link: '/crypto' },
+      { label: 'Stocks', link: '/stocks' },
+    ]
+  },
+  {
+    label: 'Company',
+    subItems: [
+      { label: 'About Us', link: '/about' },
+      { label: 'Contact', link: '/contact' },
+      { label: 'Help Center', link: '/help-center' },
+    ]
+  },
+  {
+    label: 'Trade',
+    subItems: [
+      { label: 'Spot Trading', link: '/trade' },
+      { label: 'Copy Trading', link: '/dashboard/copy-trading' },
+      { label: 'Staking', link: '/staking' },
+    ]
+  }
+];
+
 export const DesktopNav = () => {
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
   return (
-    <div className="caret-transparent hidden max-w-[468px] min-h-0 min-w-0 outline-[3px] no-underline w-full mx-auto md:block md:min-h-[auto] md:min-w-[auto]">
-      <nav className="box-border caret-transparent outline-[3px] no-underline w-6/12 mx-auto p-1 rounded-lg">
-        <ul className="items-center caret-transparent gap-x-2 flex list-none outline-[3px] relative gap-y-2 no-underline pl-0">
-          <li className="caret-transparent min-h-0 min-w-0 outline-[3px] no-underline md:min-h-[auto] md:min-w-[auto]">
-            <button
-              type="button"
-              className="bg-transparent caret-transparent text-slate-200 gap-x-1 flex text-sm font-medium justify-center leading-5 gap-y-1 text-center no-underline px-3 py-2 rounded-xl font-inter"
+    <div className="hidden max-w-[500px] w-full mx-auto md:block z-[999]">
+      <nav className="w-full mx-auto p-1">
+        <ul className="flex items-center justify-center gap-x-6 list-none pl-0 m-0">
+          {NAV_ITEMS.map((item) => (
+            <li 
+              key={item.label} 
+              className="relative"
+              onMouseEnter={() => setOpenDropdown(item.label)}
+              onMouseLeave={() => setOpenDropdown(null)}
             >
-              Explore
-              <span className="caret-transparent block h-4 min-h-4 min-w-4 outline-[3px] relative no-underline w-4 z-10">
-                <img
-                  src="https://c.animaapp.com/ms9b4yl7eEtjhI/assets/icon-2.svg"
-                  alt="Icon"
-                  className="caret-transparent inline h-2.5 outline-[3px] no-underline align-baseline w-2.5"
-                />
-              </span>
-            </button>
-          </li>
-          <li className="caret-transparent min-h-0 min-w-0 outline-[3px] no-underline md:min-h-[auto] md:min-w-[auto]">
-            <button
-              type="button"
-              className="bg-transparent caret-transparent text-slate-200 gap-x-1 flex text-sm font-medium justify-center leading-5 gap-y-1 text-center no-underline px-3 py-2 rounded-xl font-inter"
-            >
-              Company
-              <span className="caret-transparent block h-4 min-h-4 min-w-4 outline-[3px] relative no-underline w-4 z-10">
-                <img
-                  src="https://c.animaapp.com/ms9b4yl7eEtjhI/assets/icon-2.svg"
-                  alt="Icon"
-                  className="caret-transparent inline h-2.5 outline-[3px] no-underline align-baseline w-2.5"
-                />
-              </span>
-            </button>
-          </li>
-          <li className="caret-transparent min-h-0 min-w-0 outline-[3px] no-underline md:min-h-[auto] md:min-w-[auto]">
-            <button
-              type="button"
-              className="bg-transparent caret-transparent text-slate-200 gap-x-1 flex text-sm font-medium justify-center leading-5 gap-y-1 text-center no-underline px-3 py-2 rounded-xl font-inter"
-            >
-              Trade
-              <span className="caret-transparent block h-4 min-h-4 min-w-4 outline-[3px] relative no-underline w-4 z-10">
-                <img
-                  src="https://c.animaapp.com/ms9b4yl7eEtjhI/assets/icon-2.svg"
-                  alt="Icon"
-                  className="caret-transparent inline h-2.5 outline-[3px] no-underline align-baseline w-2.5"
-                />
-              </span>
-            </button>
-          </li>
+              <button
+                type="button"
+                onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
+                className={`flex items-center gap-x-1 text-sm font-medium px-3 py-2 rounded-xl font-inter transition-colors ${
+                  openDropdown === item.label ? 'text-white' : 'text-slate-300 hover:text-white'
+                }`}
+              >
+                {item.label}
+                <svg 
+                  className={`w-4 h-4 transition-transform ${openDropdown === item.label ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {openDropdown === item.label && (
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-[#121519] border border-[#242a31] rounded-xl shadow-2xl py-2 overflow-hidden z-[999]">
+                  {item.subItems.map((subItem) => (
+                    <Link
+                      key={subItem.label}
+                      to={subItem.link}
+                      className="block px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-[#1a1d24] transition-colors"
+                      onClick={() => setOpenDropdown(null)}
+                    >
+                      {subItem.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       </nav>
     </div>
