@@ -1,8 +1,8 @@
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { Navbar } from "@/sections/Navbar";
 import { MainContent } from "./sections/MainContent/index";
-import { ChatWidget } from "./components/ChatWidget";
-import { CookieConsent } from "./components/CookieConsent";
+import { FloatingWidget } from "@/components/FloatingWidget";
+import { CookieBanner } from "@/components/CookieBanner";
 
 export const App = () => {
   return (
@@ -16,8 +16,8 @@ export const App = () => {
       <div className="caret-transparent block outline-[3px] no-underline md:hidden"></div>
       <MainContent />
       <div className="caret-transparent block outline-[3px] absolute no-underline"></div>
-      <ChatWidget />
-      <CookieConsent />
+      <FloatingWidget />
+      <CookieBanner />
     </body>
   );
 };

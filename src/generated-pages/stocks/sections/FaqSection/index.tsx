@@ -1,4 +1,4 @@
-import { FaqItem } from "./components/FaqItem";
+import { FaqItem } from "@/sections/Faq/components/FaqItem";
 
 export const FaqSection = () => {
   return (
