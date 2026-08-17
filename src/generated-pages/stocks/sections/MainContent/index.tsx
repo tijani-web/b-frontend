@@ -1,7 +1,7 @@
 import { Hero } from "../Hero/index";
 import { StocksOverview } from "../StocksOverview/index";
 import { FaqSection } from "../FaqSection/index";
-import { Footer } from "../Footer/index";
+import { Footer } from "@/sections/Footer";
 
 export const MainContent = () => {
   return (

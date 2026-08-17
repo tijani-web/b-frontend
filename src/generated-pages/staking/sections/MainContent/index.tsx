@@ -1,7 +1,7 @@
 import { HeroSection } from "../HeroSection/index";
 import { StakingRewardsSection } from "../StakingRewardsSection/index";
 import { FaqSection } from "../FaqSection/index";
-import { Footer } from "../Footer/index";
+import { Footer } from "@/sections/Footer";
 
 export const MainContent = () => {
   return (

@@ -1,5 +1,5 @@
 import { MarketsHero } from "../MarketsHero/index";
-import { Footer } from "../Footer/index";
+import { Footer } from "@/sections/Footer";
 
 export const MainContent = () => {
   return (

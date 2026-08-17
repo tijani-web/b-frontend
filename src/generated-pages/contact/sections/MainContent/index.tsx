@@ -1,5 +1,5 @@
 import { ContactHero } from "../ContactHero/index";
-import { Footer } from "../Footer/index";
+import { Footer } from "@/sections/Footer";
 
 export const MainContent = () => {
   return (
