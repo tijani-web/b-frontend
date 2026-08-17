@@ -13,6 +13,8 @@ dist-ssr
 *.local
 backend/
 plan.md
+PLAN.MD
+PLAN.md
 
 # Editor directories and files
 .vscode/*
