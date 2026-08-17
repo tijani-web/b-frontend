@@ -1,5 +1,5 @@
-import { LanguageWidget } from "./components/LanguageWidget";
-import { Navbar } from "./sections/Navbar/index";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { Navbar } from "@/sections/Navbar";
 import { MainContent } from "./sections/MainContent/index";
 import { FloatingWidget } from "./components/FloatingWidget";
 import { CookieConsent } from "./components/CookieConsent/index";
@@ -10,7 +10,7 @@ export const App = () => {
       <div className="caret-transparent hidden outline-[3px] no-underline"></div>
       <div className="caret-transparent outline-[3px] no-underline">
         <div className="caret-transparent hidden outline-[3px] no-underline"></div>
-        <LanguageWidget />
+        <LanguageSelector />
       </div>
       <Navbar />
       <div className="caret-transparent block outline-[3px] no-underline md:hidden"></div>

@@ -1,4 +1,4 @@
-import { LanguageSelector } from "./components/LanguageSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { Header } from "./sections/Header/index";
 import { MainContent } from "./sections/MainContent/index";
 import { FloatingWidget } from "./components/FloatingWidget";

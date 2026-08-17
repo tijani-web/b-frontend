@@ -1,5 +1,5 @@
-import { LanguageSelector } from "./components/LanguageSelector";
-import { Navbar } from "./sections/Navbar/index";
+import { LanguageSelector } from "@/components/LanguageSelector";
+import { Navbar } from "@/sections/Navbar";
 import { MainContent } from "./sections/MainContent/index";
 import { ChatWidget } from "./components/ChatWidget";
 import { CookieConsent } from "./components/CookieConsent";

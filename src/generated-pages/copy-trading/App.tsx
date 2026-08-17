@@ -1,5 +1,5 @@
 import { UtilityOverlays } from "./components/UtilityOverlays";
-import { Navbar } from "./sections/Navbar/index";
+import { Navbar } from "@/sections/Navbar";
 import { MainContent } from "./sections/MainContent/index";
 import { CookieConsent } from "./sections/CookieConsent/index";
 

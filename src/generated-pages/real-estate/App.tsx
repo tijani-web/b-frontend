@@ -1,5 +1,5 @@
 import { TopUtilityWidgets } from "./components/TopUtilityWidgets";
-import { Navbar } from "./sections/Navbar/index";
+import { Navbar } from "@/sections/Navbar";
 import { MainContent } from "./sections/MainContent/index";
 import { FloatingWidget } from "./components/FloatingWidget";
 import { CookieConsent } from "./components/CookieConsent/index";
