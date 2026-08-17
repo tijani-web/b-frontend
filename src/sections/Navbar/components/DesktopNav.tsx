@@ -78,7 +78,7 @@ const NAV_ITEMS = [
       { 
         label: 'Spot Trading', 
         description: 'Trade crypto instantly',
-        link: '/trade',
+        link: '/crypto',
         icon: (
           <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -88,7 +88,7 @@ const NAV_ITEMS = [
       { 
         label: 'Copy Trading', 
         description: 'Copy expert trades on autopilot',
-        link: '/dashboard/copy-trading',
+        link: '/copy-trading',
         icon: (
           <svg className="w-5 h-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />

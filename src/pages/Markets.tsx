@@ -19,6 +19,12 @@ export const Markets = () => {
   const [prices, setPrices] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
+  // Auth guard — redirect unauthenticated users
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) navigate('/login');
+  }, [navigate]);
+
   useEffect(() => {
     // Fetch live prices from CoinGecko via backend
     fetch('/api/market/prices?symbols=BTC,ETH,USDT,USDC,SOL,BNB,AAPL')
