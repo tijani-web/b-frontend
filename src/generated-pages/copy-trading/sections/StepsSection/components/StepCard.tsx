@@ -18,7 +18,7 @@ export const StepCard = (props: StepCardProps) => {
         alt="Icon"
         className="caret-transparent h-full outline-[3px] pointer-events-none absolute no-underline align-baseline w-full left-0 top-0"
       />
-      <div className="content-center bg-amber-500 caret-transparent grid h-6 justify-center min-h-[auto] min-w-[auto] outline-[3px] no-underline w-6 rounded-[100%]">
+      <div className="content-center bg-[#ff6a00] caret-transparent grid h-6 justify-center min-h-[auto] min-w-[auto] outline-[3px] no-underline w-6 rounded-[100%]">
         <p className="caret-transparent text-zinc-50 text-[13px] font-medium leading-[13px] min-h-[auto] min-w-[auto] outline-[3px] no-underline font-mori">
           {props.stepNumber}
         </p>

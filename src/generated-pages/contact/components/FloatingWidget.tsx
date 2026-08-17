@@ -5,7 +5,7 @@ export const FloatingWidget = () => {
       aria-label="Live chat widget"
       className="box-border caret-transparent outline-[3px] relative no-underline z-[2147483647]"
     >
-      <div className="items-center bg-amber-500 box-border caret-transparent flex text-[15px] h-[55px] justify-center leading-[15px] outline-[3px] fixed no-underline w-[55px] p-[3px] rounded-[100%] scale-[0.8] right-2.5 bottom-2.5 md:transform-none">
+      <div className="items-center bg-[#ff6a00] box-border caret-transparent flex text-[15px] h-[55px] justify-center leading-[15px] outline-[3px] fixed no-underline w-[55px] p-[3px] rounded-[100%] scale-[0.8] right-2.5 bottom-2.5 md:transform-none">
         <span className="box-border caret-transparent block min-h-[auto] min-w-[auto] outline-[3px] no-underline scale-[0.8] md:transform-none"></span>
         <span
           aria-label="Chat Widget"

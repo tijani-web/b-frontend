@@ -28,7 +28,7 @@ export const BenefitCard = (props: BenefitCardProps) => {
           <img
             src={props.titleIconUrl}
             alt="Icon"
-            className="caret-transparent text-amber-500 h-[18px] outline-[3px] no-underline align-baseline w-[18px]"
+            className="caret-transparent text-[#ff6a00] h-[18px] outline-[3px] no-underline align-baseline w-[18px]"
           />
           <p className="caret-transparent text-zinc-50 text-sm font-semibold leading-[18px] min-h-[auto] min-w-[auto] outline-[3px] no-underline font-mori">
             {props.title}

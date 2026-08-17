@@ -41,7 +41,7 @@ export const UtilityOverlays = (props: UtilityOverlaysProps) => {
         aria-label={props.chatAriaLabel}
         className="caret-transparent outline-[3px] no-underline box-border relative z-[2147483647]"
       >
-        <div className="caret-transparent outline-[3px] no-underline items-center bg-amber-500 box-border flex text-[15px] h-[55px] justify-center leading-[15px] fixed w-[55px] p-[3px] rounded-[100%] scale-[0.8] right-2.5 bottom-2.5 md:transform-none">
+        <div className="caret-transparent outline-[3px] no-underline items-center bg-[#ff6a00] box-border flex text-[15px] h-[55px] justify-center leading-[15px] fixed w-[55px] p-[3px] rounded-[100%] scale-[0.8] right-2.5 bottom-2.5 md:transform-none">
           <span className="box-border caret-transparent block min-h-[auto] min-w-[auto] outline-[3px] no-underline scale-[0.8] md:transform-none"></span>
           <span
             aria-label={props.chatButtonAriaLabel}
