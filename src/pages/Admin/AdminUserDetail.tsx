@@ -16,6 +16,22 @@ export const AdminUserDetail = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone and will delete all related data.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      await adminApi.deleteUser(id!);
+      navigate('/admin/users');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete user.');
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -61,7 +77,15 @@ export const AdminUserDetail = () => {
             <p className="text-gray-500 text-xs mb-1">Joined</p>
             <p className="text-gray-300 text-sm">{new Date(user.createdAt).toLocaleString()}</p>
             <p className="text-gray-500 text-xs mt-3 mb-1">User ID</p>
-            <p className="font-mono text-gray-400 text-xs bg-neutral-950 px-2 py-1 rounded">{user.id}</p>
+            <p className="font-mono text-gray-400 text-xs bg-neutral-950 px-2 py-1 rounded mb-4">{user.id}</p>
+            
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg text-sm font-medium transition-colors border border-red-500/20 disabled:opacity-50"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete User'}
+            </button>
           </div>
         </div>
 

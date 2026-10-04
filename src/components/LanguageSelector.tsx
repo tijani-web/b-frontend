@@ -1,57 +1,99 @@
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
-const LANGUAGES = [
-  { code: 'en', label: 'English', icon: 'https://c.animaapp.com/ms9b4yl7eEtjhI/assets/en.svg' },
-  { code: 'es', label: 'Español', icon: 'https://upload.wikimedia.org/wikipedia/commons/9/9a/Flag_of_Spain.svg' },
-  { code: 'zh', label: '中文', icon: 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Flag_of_the_People%27s_Republic_of_China.svg' },
+const ALL_LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'zh-CN', label: '中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'pt', label: 'Português' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'hi', label: 'हिन्दी' },
+  { code: 'tr', label: 'Türkçe' },
+  { code: 'nl', label: 'Nederlands' },
 ];
 
 export const LanguageSelector = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selected, setSelected] = useState(LANGUAGES[0]);
+  const [search, setSearch] = useState('');
+  
+  // Try to get language from cookie or default to en
+  const getInitialLang = () => {
+    const match = document.cookie.match(/googtrans=\/en\/([a-zA-Z-]+)/);
+    const code = match ? match[1] : 'en';
+    return ALL_LANGUAGES.find(l => l.code === code) || ALL_LANGUAGES[0];
+  };
+
+  const [selected, setSelected] = useState(getInitialLang());
+
+  const filteredLanguages = useMemo(() => {
+    return ALL_LANGUAGES.filter(lang => 
+      lang.label.toLowerCase().includes(search.toLowerCase()) || 
+      lang.code.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [search]);
+
+  const handleLanguageChange = (lang: typeof ALL_LANGUAGES[0]) => {
+    setSelected(lang);
+    setIsOpen(false);
+    
+    // Set google translate cookies (from English to Target)
+    document.cookie = `googtrans=/en/${lang.code}; path=/`;
+    document.cookie = `googtrans=/en/${lang.code}; domain=${window.location.hostname}; path=/`;
+    
+    // Reload page to apply translation
+    window.location.reload();
+  };
+
   return (
-    <div className="caret-transparent outline-[3px] no-underline">
-      <div className="caret-transparent hidden outline-[3px] no-underline"></div>
-      <div className="caret-transparent outline-[3px] fixed no-underline z-[999999] left-5 bottom-5">
-        <div className="bg-white shadow-[rgba(0,0,0,0.15)_0px_5px_15px_0px] caret-transparent text-neutral-600 inline-block text-xl leading-5 outline-[3px] no-underline overflow-hidden rounded-lg font-arial">
-          
-          {isOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-40 bg-white rounded-lg shadow-xl overflow-hidden border border-gray-100">
-              {LANGUAGES.map((lang) => (
+    <div className="fixed z-[999999] left-6 bottom-6 font-inter">
+      <div className="relative">
+        {isOpen && (
+          <div className="absolute bottom-full left-0 mb-3 w-64 bg-[#141414] rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="p-3 border-b border-white/10">
+              <input 
+                type="text" 
+                placeholder="Search languages..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-[#1a1a1a] text-white text-sm px-3 py-2 rounded-lg outline-none border border-white/5 focus:border-[#ff6a00] transition-colors"
+                autoFocus
+              />
+            </div>
+            <div className="max-h-64 overflow-y-auto custom-scrollbar">
+              {filteredLanguages.length > 0 ? filteredLanguages.map((lang) => (
                 <button
                   key={lang.code}
-                  onClick={() => { setSelected(lang); setIsOpen(false); }}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 transition-colors text-sm font-bold text-gray-800"
+                  onClick={() => handleLanguageChange(lang)}
+                  className={`w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center justify-between transition-colors text-sm font-medium ${selected.code === lang.code ? 'text-[#ff6a00] bg-white/5' : 'text-gray-300'}`}
                 >
-                  <img src={lang.icon} alt={lang.code} className="w-5 h-3 object-cover rounded-sm" />
-                  {lang.label}
+                  <span>{lang.label}</span>
+                  <span className="text-gray-600 text-xs uppercase">{lang.code}</span>
                 </button>
-              ))}
+              )) : (
+                <div className="px-4 py-3 text-sm text-gray-500 text-center">No languages found</div>
+              )}
             </div>
-          )}
-
-          <div className="bg-white caret-transparent outline-[3px] relative text-left no-underline uppercase z-[888] overflow-hidden">
-            <button 
-              onClick={() => setIsOpen(!isOpen)}
-              className="caret-transparent text-zinc-800 font-bold outline-[3px] no-underline px-[15px] py-2.5 flex items-center hover:bg-gray-50 transition-colors w-full cursor-pointer"
-            >
-              <img
-                src={selected.icon}
-                alt={selected.code}
-                className="caret-transparent inline-block outline-[3px] no-underline w-[33px] h-5 object-cover mr-[5px] rounded-[3px]"
-              />
-              <span className="caret-transparent outline-[3px] relative no-underline">
-                {selected.code}
-              </span>
-              <svg 
-                className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
           </div>
-        </div>
+        )}
+
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-2 bg-[#141414]/80 hover:bg-[#1a1a1a] backdrop-blur-md border border-white/10 text-white font-medium px-4 py-2.5 rounded-full shadow-lg transition-all"
+        >
+          <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" /></svg>
+          <span className="text-sm tracking-wide">{selected.label}</span>
+          <svg 
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
       </div>
     </div>
   );

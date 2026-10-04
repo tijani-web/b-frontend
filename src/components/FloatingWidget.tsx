@@ -3,6 +3,21 @@ import { useState } from 'react';
 export const FloatingWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'conversation'>('home');
+  const [messages, setMessages] = useState<{text: string, isUser: boolean}[]>([]);
+  const [inputValue, setInputValue] = useState('');
+
+  const handleSendMessage = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!inputValue.trim()) return;
+
+    setMessages(prev => [...prev, { text: inputValue, isUser: true }]);
+    setInputValue('');
+
+    // Simulate agent reply
+    setTimeout(() => {
+      setMessages(prev => [...prev, { text: "Thank you for reaching out! One of our support agents will be with you shortly. Please leave your email if you get disconnected.", isUser: false }]);
+    }, 1500);
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-[2147483647] font-inter">
@@ -97,34 +112,44 @@ export const FloatingWidget = () => {
               </div>
 
               {/* Chat Body */}
-              <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-6 bg-white relative">
-                {/* Generic illustration simulating Zoho's graphic */}
-                <div className="mb-4 relative">
-                  <div className="w-48 h-36 bg-gray-50 flex items-center justify-center text-gray-200 rounded-lg border border-gray-100">
-                    <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
+              <div className="flex-1 overflow-y-auto flex flex-col p-4 bg-white relative space-y-4 custom-scrollbar">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center">
+                    <div className="mb-4 relative">
+                      <div className="w-48 h-36 bg-gray-50 flex items-center justify-center text-gray-200 rounded-lg border border-gray-100">
+                        <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div className="absolute top-2 left-6 w-8 h-8 bg-[#ff8c00] rounded-full" />
+                      <div className="absolute top-8 left-10 w-24 h-16 bg-purple-500 rounded-lg opacity-80" />
+                    </div>
+                    <p className="text-[#888] font-medium text-[15px]">We're online!</p>
                   </div>
-                  <div className="absolute top-2 left-6 w-8 h-8 bg-[#ff8c00] rounded-full" />
-                  <div className="absolute top-8 left-10 w-24 h-16 bg-purple-500 rounded-lg opacity-80" />
-                </div>
-                <p className="text-[#888] font-medium text-[15px]">We're online!</p>
+                ) : (
+                  messages.map((msg, idx) => (
+                    <div key={idx} className={`max-w-[80%] rounded-xl p-3 text-[14px] leading-relaxed shadow-sm ${msg.isUser ? 'bg-[#ff8c00] text-white self-end rounded-br-none' : 'bg-[#f4f5f7] text-gray-800 self-start rounded-bl-none border border-gray-100'}`}>
+                      {msg.text}
+                    </div>
+                  ))
+                )}
               </div>
 
               {/* Input Area */}
-              <div className="border-t border-[#ff8c00] p-2 flex items-center bg-white relative">
+              <form onSubmit={handleSendMessage} className="border-t border-gray-100 p-2 flex items-center bg-white relative">
                 <input 
                   type="text" 
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
                   placeholder="We are here to help you" 
-                  className="flex-1 py-3 px-3 outline-none text-[15px] placeholder-gray-400"
-                  disabled
+                  className="flex-1 py-2.5 px-3 outline-none text-[14px] placeholder-gray-400 bg-transparent"
                 />
-                <button className="w-10 h-10 bg-[#e57d00] rounded-full flex items-center justify-center text-white flex-shrink-0 transition-transform hover:scale-105">
-                  <svg className="w-5 h-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button type="submit" disabled={!inputValue.trim()} className="w-9 h-9 bg-[#e57d00] disabled:bg-gray-300 rounded-full flex items-center justify-center text-white flex-shrink-0 transition-transform hover:scale-105">
+                  <svg className="w-4 h-4 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </button>
-              </div>
+              </form>
 
               {/* Zoho branding */}
               <div className="text-center py-2.5 text-[11px] text-gray-500 flex items-center justify-center gap-1.5 bg-gray-50 border-t border-gray-100">

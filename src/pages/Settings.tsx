@@ -2,7 +2,7 @@ import { Sidebar } from './Dashboard/layout/Sidebar';
 import { BottomNav } from './Dashboard/layout/BottomNav';
 import { Header } from './Dashboard/layout/Header';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 type User = {
   email: string;
@@ -13,7 +13,11 @@ type User = {
 
 export const Settings = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
+
+  const [activeLanguage, setActiveLanguage] = useState(localStorage.getItem('preferredLang') || 'English');
+
 
   // KYC
   const [kycLoading, setKycLoading] = useState(false);
@@ -45,7 +49,15 @@ export const Settings = () => {
         else { localStorage.removeItem('token'); navigate('/login'); }
       })
       .catch(() => {});
-  }, [navigate]);
+
+    // Scroll to language if tab=language
+    if (searchParams.get('tab') === 'language') {
+      setTimeout(() => {
+        const el = document.getElementById('language-section');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
+  }, [navigate, searchParams]);
 
   // ── KYC ──────────────────────────────────────────────────
   const handleKyc = () => {
@@ -172,6 +184,28 @@ export const Settings = () => {
               >
                 {user?.kycStatus === 'VERIFIED' ? '✓ Identity Verified' : kycLoading ? 'Verifying...' : 'Start Verification'}
               </button>
+            </div>
+
+            {/* Language Selection */}
+            <div id="language-section" className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6">
+              <h2 className="text-lg font-bold mb-4">Language Preferences</h2>
+              <p className="text-sm text-gray-400 mb-4">Select your preferred language for the dashboard.</p>
+              <select 
+                value={activeLanguage}
+                onChange={(e) => {
+                  setActiveLanguage(e.target.value);
+                  localStorage.setItem('preferredLang', e.target.value);
+                  // Normally you'd trigger an i18n change here
+                }}
+                className="w-full max-w-md bg-black border border-neutral-800 rounded-lg px-4 py-3 text-white focus:border-[#ff6a00] outline-none transition-all appearance-none cursor-pointer"
+              >
+                <option value="English">English</option>
+                <option value="Spanish">Español</option>
+                <option value="French">Français</option>
+                <option value="German">Deutsch</option>
+                <option value="Chinese">中文</option>
+                <option value="Japanese">日本語</option>
+              </select>
             </div>
 
             {/* Security */}

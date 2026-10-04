@@ -107,5 +107,6 @@ export const adminApi = {
   getUsers: (params?: { kycStatus?: string; search?: string; page?: number }) =>
     request<any>('GET', `/admin/users${buildQuery(params)}`),
   getUser: (id: string) => request<any>('GET', `/admin/users/${id}`),
+  deleteUser: (id: string) => request<any>('DELETE', `/admin/users/${id}`),
 };
 

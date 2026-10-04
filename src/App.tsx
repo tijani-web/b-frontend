@@ -7,7 +7,7 @@ import { FloatingWidget } from "@/components/FloatingWidget";
 import { CookieBanner } from "@/components/CookieBanner";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import HelpCenterPage from "./generated-pages/help-center";
-import StakingPage from "./generated-pages/staking";
+import { Stake } from "./pages/Stake";
 import { Markets } from "./pages/Markets";
 import RealEstatePage from "./generated-pages/real-estate";
 import AboutPage from "./generated-pages/about";
@@ -22,13 +22,19 @@ import { Mining } from "./pages/Dashboard/Mining";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { TransactionHistory } from "./pages/TransactionHistory";
+import { Trade } from "./pages/Dashboard/Trade";
 import { Earn } from "./pages/Earn";
 import { Settings } from "./pages/Settings";
 import { KYCUpload } from "./pages/KYC";
 import { Assets } from "./pages/Assets";
 import { CopyTradingDashboard } from "./pages/Dashboard/CopyTrading";
+import { ColdStorage } from "./pages/Dashboard/ColdStorage";
+import { Subscribe } from "./pages/Subscribe";
+import { Signals } from "./pages/Signals";
+import { RealEstate } from "./pages/RealEstate";
 import { Deposit } from "./pages/Deposit";
 import { Withdraw } from "./pages/Withdraw";
+import { Support } from "./pages/Support";
 import { AdminOverview } from "./pages/Admin/AdminOverview";
 import { AdminDeposits } from "./pages/Admin/AdminDeposits";
 import { AdminWithdrawals } from "./pages/Admin/AdminWithdrawals";
@@ -46,7 +52,6 @@ const EntryPage = () => {
       <div className="caret-transparent block outline-[3px] no-underline md:hidden"></div>
       <MainContent />
       <div className="caret-transparent block outline-[3px] absolute no-underline"></div>
-      <FloatingWidget />
       <CookieBanner />
     </body>
   );
@@ -68,9 +73,10 @@ export const App = () => {
       <Routes>
         <Route path="/" element={<EntryPage />} />
         <Route path="/help-center" element={<HelpCenterPage />} />
-        <Route path="/staking" element={<StakingPage />} />
+        <Route path="/stake" element={<Stake />} />
+        <Route path="/staking" element={<Stake />} />
         <Route path="/markets" element={<Markets />} />
-        <Route path="/real-estate" element={<RealEstatePage />} />
+        <Route path="/real-estate" element={<RealEstate />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/crypto" element={<CryptoPage />} />
@@ -81,15 +87,20 @@ export const App = () => {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/trade" element={<Trade />} />
         <Route path="/mining" element={<Mining />} />
         <Route path="/transactions" element={<TransactionHistory />} />
         <Route path="/earn" element={<Earn />} />
         <Route path="/dashboard/copy-trading" element={<CopyTradingDashboard />} />
+        <Route path="/cold-storage" element={<ColdStorage />} />
+        <Route path="/subscribe" element={<Subscribe />} />
+        <Route path="/signals" element={<Signals />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/kyc" element={<KYCUpload />} />
         <Route path="/assets" element={<Assets />} />
         <Route path="/deposit" element={<Deposit />} />
         <Route path="/withdraw" element={<Withdraw />} />
+        <Route path="/support" element={<Support />} />
         
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminOverview />} />

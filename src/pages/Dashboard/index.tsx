@@ -4,6 +4,7 @@ import { Header } from './layout/Header';
 import { BottomNav } from './layout/BottomNav';
 import { useNavigate, Link } from 'react-router-dom';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
+import { MobileMenu } from './layout/MobileMenu';
 
 interface Wallet {
   id: string;
@@ -40,6 +41,7 @@ export const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [mobileTab, setMobileTab] = useState('Crypto');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Trade Panel State
   const [tradeTab, setTradeTab] = useState<'buy' | 'sell' | 'convert'>('buy');
@@ -160,6 +162,35 @@ export const Dashboard = () => {
 
   const totalBalanceUSDMemo = totalBalanceUSD;
 
+  const MyTradesSection = () => (
+    <div className="mt-6 bg-[#0A0A0A]">
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="text-white font-bold text-sm">My trades</h2>
+        <div className="flex bg-[#1a1a1a] rounded p-0.5">
+          <button className="bg-[#ff6a00] text-black text-[10px] font-bold px-3 py-1 rounded">All</button>
+          <button className="text-gray-400 text-[10px] font-bold px-3 py-1 rounded hover:text-white">Swaps</button>
+          <button className="text-gray-400 text-[10px] font-bold px-3 py-1 rounded hover:text-white">Auto</button>
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="bg-[#141414] border border-[#222] rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#1a1a1a] transition-colors">
+          <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Open (0)
+          </div>
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+        </div>
+        <div className="bg-[#141414] border border-[#222] rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#1a1a1a] transition-colors">
+          <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
+            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+            Closed (0)
+          </div>
+          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-inter overflow-x-hidden">
       <Sidebar />
@@ -168,13 +199,18 @@ export const Dashboard = () => {
       <div className="flex md:hidden flex-col w-full h-screen bg-[#0A0A0A] overflow-y-auto pb-24">
         {/* Mobile Header */}
         <div className="flex items-center justify-between px-5 pt-10 pb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-[#26A17B] rounded-full flex items-center justify-center">
-              <div className="w-2.5 h-2.5 bg-white rounded-full" />
-            </div>
-            <div className="flex items-center gap-1 text-white font-semibold text-sm">
-              Account 1
-              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsMobileMenuOpen(true)} className="text-white hover:text-gray-300">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 bg-[#26A17B] rounded-full flex items-center justify-center">
+                <div className="w-2.5 h-2.5 bg-white rounded-full" />
+              </div>
+              <div className="flex items-center gap-1 text-white font-semibold text-sm">
+                Account 1
+                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -267,7 +303,11 @@ export const Dashboard = () => {
                     const price = prices[wallet.coin] ?? 0;
                     const val = bal * price;
                     return (
-                      <div key={wallet.id} className="flex items-center justify-between py-3.5 border-b border-[#1a1a1a]">
+                      <div 
+                        key={wallet.id} 
+                        onClick={() => setSelectedAsset(wallet.coin)}
+                        className={`flex items-center justify-between p-3.5 rounded-lg border-b border-[#1a1a1a] cursor-pointer transition-colors ${selectedAsset === wallet.coin ? 'bg-[#1a1a1a]' : 'hover:bg-[#111]'}`}
+                      >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0" style={{ backgroundColor: meta.color }}>
                             {meta.icon}
@@ -296,6 +336,79 @@ export const Dashboard = () => {
                 hide_side_toolbar={true}
                 autosize
               />
+            </div>
+          )}
+          {/* Trade Panel - shown below chart on mobile in Crypto tab */}
+          {mobileTab === 'Crypto' && (
+            <div className="mt-4 bg-[#141414] border border-[#222] rounded-2xl p-4">
+              <div className="flex bg-[#0A0A0A] rounded-lg p-1 mb-4">
+                <button onClick={() => setTradeTab('buy')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : 'text-gray-400'}`}>Buy</button>
+                <button onClick={() => setTradeTab('sell')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'sell' ? 'bg-red-500 text-white' : 'text-gray-400'}`}>Sell</button>
+                <button onClick={() => setTradeTab('convert')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'convert' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}>Convert</button>
+              </div>
+              <div className="space-y-3">
+                <div className="bg-[#0A0A0A] border border-[#222] rounded-lg flex items-center px-3 py-2.5 focus-within:border-[#ff6a00] transition-colors">
+                  <input
+                    type="number"
+                    value={tradeAmount}
+                    onChange={(e) => setTradeAmount(e.target.value)}
+                    className="bg-transparent text-sm font-bold w-full focus:outline-none"
+                    placeholder="0.00"
+                  />
+                  <span className="text-xs text-gray-400 font-bold">{tradeTab === 'buy' ? 'USDT' : selectedAsset}</span>
+                </div>
+                <div className="flex justify-between text-[10px] mt-1">
+                  <span className="text-gray-500">Current {selectedAsset} price</span>
+                  <span className="text-green-500 font-bold">${(prices[selectedAsset] || 0).toLocaleString()}</span>
+                </div>
+
+                <div className="pt-2">
+                  <label className="block text-[10px] text-gray-500 font-medium mb-2">Leverage</label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 relative flex items-center h-4">
+                      <div className="absolute w-full h-[1px] bg-gray-600"></div>
+                      <input 
+                        type="range" 
+                        min="1" 
+                        max="100" 
+                        value={leverage} 
+                        onChange={(e) => setLeverage(Number(e.target.value))}
+                        className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#ff6a00] [&::-webkit-slider-thumb]:rounded-[1px] cursor-pointer z-10" 
+                      />
+                    </div>
+                    <div className="bg-[#1a1a1a] border border-[#222] rounded px-2 py-1 text-xs font-bold w-12 text-center">{leverage}x</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" className="w-3.5 h-3.5 rounded bg-transparent border-gray-600 appearance-none border checked:bg-[#ff6a00] checked:border-transparent flex items-center justify-center relative after:content-[''] after:absolute after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 after:top-0 after:left-1 transition-all" />
+                    <span className="text-xs font-bold">Use TP/SL</span>
+                  </label>
+                  <button className="bg-[#1a1a1a] border border-[#222] rounded-full px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">
+                    Set with AI
+                  </button>
+                </div>
+
+                <div className="pb-2">
+                  <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
+                  <div className="bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
+                    2 minutes
+                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+
+                {tradeError && <div className="text-red-400 text-xs font-medium text-center">{tradeError}</div>}
+                {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center">{tradeSuccess}</div>}
+                <button
+                  onClick={handleExecuteTrade}
+                  disabled={isExecuting}
+                  className={`w-full py-3 rounded-xl font-bold text-sm transition-opacity ${isExecuting ? 'opacity-50' : 'active:opacity-80'} ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : tradeTab === 'sell' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
+                >
+                  {isExecuting ? 'Executing...' : `${tradeTab === 'buy' ? 'Buy' : tradeTab === 'sell' ? 'Sell' : 'Convert'} ${selectedAsset}`}
+                </button>
+              </div>
+              <MyTradesSection />
             </div>
           )}
           {mobileTab === 'DeFi' && (
@@ -470,6 +583,11 @@ export const Dashboard = () => {
                   gridLineColor="#1a1a1a"
                 />
               </div>
+            </div>
+            
+            {/* My Trades directly below chart on desktop */}
+            <div className="p-6">
+              <MyTradesSection />
             </div>
             
           </div>
@@ -688,6 +806,8 @@ export const Dashboard = () => {
 
       </div>
       {/* End Desktop */}
+
+      <MobileMenu isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} userInitial="U" />
     </div>
   );
 };

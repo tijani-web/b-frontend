@@ -80,7 +80,7 @@ export const Mining = () => {
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-inter overflow-x-hidden">
       <Sidebar />
-      <div className="w-full md:ml-[260px] flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-[260px] flex flex-col min-h-screen">
         <Header />
         
         <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full pb-32 md:pb-8">
