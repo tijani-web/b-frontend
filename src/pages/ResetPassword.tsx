@@ -36,16 +36,36 @@ export const ResetPassword = () => {
         body: JSON.stringify({ token, newPassword: password }),
       });
 
-      const data = await response.json();
+      let data: any = {};
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+      } else {
+        await response.text().catch(() => '');
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to reset password');
+        throw new Error(
+          data.error ||
+          (response.status >= 500
+            ? 'The server is temporarily unavailable. Please try again in a few moments.'
+            : 'Failed to reset password. Please check your reset link and try again.')
+        );
       }
 
       setSuccess(true);
       setTimeout(() => navigate('/login'), 3000);
     } catch (err: any) {
-      setError(err.message);
+      const msg = err?.message || '';
+      if (msg.includes('Unexpected token') || msg.includes('JSON')) {
+        setError('The server is temporarily busy. Please wait a moment and try again.');
+      } else {
+        setError(msg || 'An unexpected error occurred. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
