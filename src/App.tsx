@@ -34,6 +34,7 @@ import { Signals } from "./pages/Signals";
 import { RealEstate } from "./pages/RealEstate";
 import { Deposit } from "./pages/Deposit";
 import { Withdraw } from "./pages/Withdraw";
+import { Referrals } from "./pages/Referrals";
 import { Support } from "./pages/Support";
 import { AdminOverview } from "./pages/Admin/AdminOverview";
 import { AdminDeposits } from "./pages/Admin/AdminDeposits";
@@ -103,6 +104,7 @@ export const App = () => {
         <Route path="/assets" element={<Assets />} />
         <Route path="/deposit" element={<Deposit />} />
         <Route path="/withdraw" element={<Withdraw />} />
+        <Route path="/referrals" element={<Referrals />} />
         <Route path="/support" element={<Support />} />
         
         {/* Admin Routes (Protected) */}

@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -206,10 +207,10 @@ export const Sidebar = () => {
       </div>
 
       {/* Coming Soon Drawer */}
-      {comingSoonDrawer && (
+      {comingSoonDrawer && createPortal(
         <>
-          <div className="fixed inset-0 bg-black/60 z-[60]" onClick={() => setComingSoonDrawer(null)} />
-          <div className="fixed top-0 right-0 h-full w-[400px] bg-[#1c1c1c] z-[70] shadow-2xl flex flex-col transform transition-transform duration-300">
+          <div className="fixed inset-0 bg-black/70 z-[9998]" onClick={() => setComingSoonDrawer(null)} />
+          <div className="fixed top-0 right-0 h-full w-[400px] max-w-full bg-[#1c1c1c] z-[9999] shadow-2xl flex flex-col font-inter transform transition-transform duration-300">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
               <div className="flex items-center gap-3">
                 <button onClick={() => setComingSoonDrawer(null)} className="text-gray-400 hover:text-white transition-colors">
@@ -232,14 +233,15 @@ export const Sidebar = () => {
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
 
       {/* Referral Drawer */}
-      {referralDrawer && (
+      {referralDrawer && createPortal(
         <>
-          <div className="fixed inset-0 bg-black/60 z-[60]" onClick={() => setReferralDrawer(false)} />
-          <div className="fixed top-0 right-0 h-full w-[420px] max-w-full bg-[#1c1c1c] z-[70] shadow-2xl flex flex-col transform transition-transform duration-300">
+          <div className="fixed inset-0 bg-black/70 z-[9998]" onClick={() => setReferralDrawer(false)} />
+          <div className="fixed top-0 right-0 h-full w-[420px] max-w-full bg-[#1c1c1c] z-[9999] shadow-2xl flex flex-col font-inter transform transition-transform duration-300">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
               <div className="flex items-center gap-3">
                 <button onClick={() => setReferralDrawer(false)} className="text-gray-400 hover:text-white transition-colors">
@@ -419,7 +421,8 @@ export const Sidebar = () => {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </aside>
   );
