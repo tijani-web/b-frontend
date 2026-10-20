@@ -221,15 +221,15 @@ export const Deposit = () => {
       </div>
 
       {modalView === 'method' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <h2 className="text-lg font-bold">Make a deposit</h2>
               <button onClick={closeModal} className="text-gray-500 hover:text-white">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <p className="text-gray-400 text-sm mb-6">
                 To make a deposit, choose your preferred method and click on the continue button
               </p>
@@ -253,12 +253,15 @@ export const Deposit = () => {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-neutral-800">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleMethodContinue}
                 disabled={!selectedMethod}
-                className="w-full py-3 bg-[#6e6e6e] hover:bg-[#858585] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded transition-colors"
-                style={{ backgroundColor: selectedMethod ? '#ff6a00' : '#6e6e6e' }}
+                className="w-full py-3.5 text-black disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-colors text-sm shadow-md"
+                style={{ 
+                  backgroundColor: selectedMethod ? '#ff6a00' : '#444',
+                  color: selectedMethod ? '#000' : '#888'
+                }}
               >
                 Continue
               </button>
@@ -268,9 +271,9 @@ export const Deposit = () => {
       )}
 
       {modalView === 'timeline' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-lg shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-lg shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <div className="flex items-center gap-2">
                 <button onClick={() => setModalView('method')} className="text-gray-400 hover:text-white">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -282,7 +285,7 @@ export const Deposit = () => {
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <p className="text-gray-400 text-sm mb-6">
                 To proceed, select your token and network, make payment to the address shown and click on the continue button.
               </p>
@@ -372,12 +375,15 @@ export const Deposit = () => {
               </div>
             </div>
 
-            <div className="p-4 border-t border-neutral-800">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleTimelineContinue}
                 disabled={step < 3 || walletAddress === 'No address configured for this network'}
-                className="w-full py-3 bg-[#6e6e6e] hover:bg-[#858585] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded transition-colors"
-                style={{ backgroundColor: (step === 3 && walletAddress !== 'No address configured for this network') ? '#ff6a00' : '#6e6e6e' }}
+                className="w-full py-3.5 text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-colors text-sm shadow-md"
+                style={{ 
+                  backgroundColor: (step === 3 && walletAddress !== 'No address configured for this network') ? '#ff6a00' : '#444',
+                  color: (step === 3 && walletAddress !== 'No address configured for this network') ? '#000' : '#888'
+                }}
               >
                 Continue
               </button>
@@ -387,9 +393,9 @@ export const Deposit = () => {
       )}
 
       {modalView === 'confirmation' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <div className="flex items-center gap-2">
                 <button onClick={() => setModalView('timeline')} className="text-gray-400 hover:text-white">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -401,8 +407,7 @@ export const Deposit = () => {
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto space-y-6">
-              
+            <div className="p-6 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
               <div>
                 <label className="text-sm text-gray-400 block mb-2 font-medium">Amount:</label>
                 <div className="relative">
@@ -459,12 +464,15 @@ export const Deposit = () => {
               {submitError && <p className="text-red-400 text-sm mt-2">{submitError}</p>}
             </div>
 
-            <div className="p-5 border-t border-neutral-800">
+            <div className="shrink-0 p-5 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleSubmit}
                 disabled={!form.amount || !proofFile || submitting}
-                className="w-full py-3.5 bg-[#6e6e6e] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg transition-colors text-[15px]"
-                style={{ backgroundColor: (form.amount && proofFile) ? '#8b8b8b' : '#6e6e6e' }}
+                className="w-full py-3.5 text-black disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-all text-[15px] shadow-lg shadow-[#ff6a00]/20 active:scale-[0.99]"
+                style={{ 
+                  backgroundColor: (form.amount && proofFile) ? '#ff6a00' : '#444',
+                  color: (form.amount && proofFile) ? '#000000' : '#888888'
+                }}
               >
                 {submitting ? 'Submitting...' : 'I have made this deposit'}
               </button>

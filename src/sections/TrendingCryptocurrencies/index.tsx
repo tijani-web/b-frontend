@@ -82,6 +82,24 @@ const CategoryCard = ({ title, ids, prices }: { title: string; ids: string[]; pr
   </div>
 );
 
+const ID_TO_SYMBOL: Record<string, string> = {
+  bitcoin: 'BTC',
+  ethereum: 'ETH',
+  ripple: 'XRP',
+  solana: 'SOL',
+  zcash: 'ZEC',
+  bonk: 'BONK',
+  dogwifcoin: 'WIF',
+  pepe: 'PEPE',
+  'worldcoin-wld': 'WLD',
+  'pyth-network': 'PYTH',
+  'injective-protocol': 'INJ',
+  'render-token': 'RNDR',
+  'fetch-ai': 'FET',
+  aptos: 'APT',
+  sui: 'SUI',
+};
+
 export const TrendingCryptocurrencies = () => {
   const [prices, setPrices] = useState<Record<string, CoinData>>(FALLBACK);
   const [loading, setLoading] = useState(true);
@@ -90,23 +108,35 @@ export const TrendingCryptocurrencies = () => {
   useEffect(() => {
     const fetchPrices = async () => {
       try {
-        const res = await fetch(
-          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ALL_IDS}&order=market_cap_desc&per_page=50&page=1&price_change_percentage=24h`,
-          { cache: 'no-store' }
-        );
-        if (!res.ok) return;
-        const data: CoinData[] = await res.json();
-        const map: Record<string, CoinData> = { ...FALLBACK };
-        data.forEach(coin => { map[coin.id] = coin; });
-        setPrices(map);
-        setLastUpdated(new Date());
-      } catch {} finally {
+        const res = await fetch('/api/market/all', { cache: 'no-store' });
+        if (res.ok) {
+          const json = await res.json();
+          const raw = json.data || {};
+          setPrices((prev) => {
+            const next = { ...prev };
+            for (const [id, sym] of Object.entries(ID_TO_SYMBOL)) {
+              const marketItem = raw[sym];
+              if (marketItem && typeof marketItem.price === 'number') {
+                next[id] = {
+                  ...next[id],
+                  current_price: marketItem.price,
+                  price_change_percentage_24h: marketItem.change24h ?? 0,
+                };
+              }
+            }
+            return next;
+          });
+          setLastUpdated(new Date());
+        }
+      } catch {
+        // silent fallback
+      } finally {
         setLoading(false);
       }
     };
 
     fetchPrices();
-    const interval = setInterval(fetchPrices, 60_000);
+    const interval = setInterval(fetchPrices, 8_000); // 8s polling for live tick updates
     return () => clearInterval(interval);
   }, []);
 

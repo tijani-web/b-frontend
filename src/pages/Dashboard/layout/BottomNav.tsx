@@ -30,11 +30,11 @@ const navItems = [
     ),
   },
   {
-    to: '/earn',
-    label: 'DeFi',
+    to: '/dashboard/copy-trading',
+    label: 'Copy Trade',
     icon: (active: boolean) => (
       <svg className={`w-6 h-6 ${active ? 'text-white' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
       </svg>
     ),
   },

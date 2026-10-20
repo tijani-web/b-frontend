@@ -106,8 +106,74 @@ export const TransactionHistory = () => {
             ))}
           </div>
 
-          {/* Table */}
-          <div className="bg-neutral-900 rounded-xl border border-neutral-800 overflow-x-auto custom-scrollbar pb-2">
+          {/* Mobile Card List (md:hidden) */}
+          <div className="md:hidden space-y-3">
+            {loading ? (
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 text-center text-gray-400">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-4 h-4 border-2 border-[#ff6a00] border-t-transparent rounded-full animate-spin" />
+                  <span>Loading transactions...</span>
+                </div>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-8 text-center">
+                <p className="text-gray-400 font-medium">No transactions found</p>
+                <p className="text-gray-600 text-xs mt-1">Make a deposit or trade to get started</p>
+              </div>
+            ) : (
+              filtered.map(tx => {
+                const amtNum = parseFloat(tx.amount || '0');
+                const amtStr = !isNaN(amtNum) ? amtNum.toFixed(8).replace(/\.?0+$/, '') : tx.amount;
+                const usdNum = tx.usdValue ? parseFloat(tx.usdValue) : null;
+
+                return (
+                  <div key={tx.id} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-base font-bold ${TYPE_COLORS[tx.type] || 'text-gray-400'}`}>
+                          {TYPE_ICONS[tx.type] || '•'}
+                        </span>
+                        <span className="text-sm font-bold text-white capitalize">{tx.type.toLowerCase().replace('_', ' ')}</span>
+                        <span className="font-mono text-xs bg-neutral-800 text-gray-300 px-2 py-0.5 rounded font-semibold">{tx.asset}</span>
+                      </div>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[tx.status] || 'text-gray-400 bg-gray-400/10'}`}>
+                        {tx.status}
+                      </span>
+                    </div>
+
+                    <div className="flex items-baseline justify-between border-t border-neutral-800/60 pt-2">
+                      <div>
+                        <div className="text-xs text-gray-500 font-medium">Amount</div>
+                        <div className="text-base font-bold text-white font-mono mt-0.5">
+                          {amtStr} <span className="text-xs text-gray-400">{tx.asset}</span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 font-medium">USD Value</div>
+                        <div className="text-sm font-semibold text-gray-200 mt-0.5">
+                          {usdNum !== null && !isNaN(usdNum) ? `$${usdNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-gray-500 border-t border-neutral-800/40 pt-2">
+                      <span>{new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {tx.txHash ? (
+                        <span className="font-mono text-[#ff6a00] truncate max-w-[140px]" title={tx.txHash}>
+                          TX: {tx.txHash.substring(0, 10)}...
+                        </span>
+                      ) : (
+                        <span>Internal</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Desktop Table (hidden on mobile) */}
+          <div className="hidden md:block bg-neutral-900 rounded-xl border border-neutral-800 overflow-x-auto custom-scrollbar pb-2">
             <table className="w-full text-left">
               <thead className="bg-neutral-950 border-b border-neutral-800 text-gray-400 text-sm">
                 <tr>
@@ -138,42 +204,48 @@ export const TransactionHistory = () => {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map(tx => (
-                    <tr key={tx.id} className="hover:bg-neutral-800/40 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className={`text-lg font-bold ${TYPE_COLORS[tx.type] || 'text-gray-400'}`}>
-                            {TYPE_ICONS[tx.type] || '?'}
+                  filtered.map(tx => {
+                    const amtNum = parseFloat(tx.amount || '0');
+                    const amtDisplay = !isNaN(amtNum) ? amtNum.toFixed(8).replace(/\.?0+$/, '') : tx.amount;
+                    const usdNum = tx.usdValue ? parseFloat(tx.usdValue) : null;
+
+                    return (
+                      <tr key={tx.id} className="hover:bg-neutral-800/40 transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-lg font-bold ${TYPE_COLORS[tx.type] || 'text-gray-400'}`}>
+                              {TYPE_ICONS[tx.type] || '?'}
+                            </span>
+                            <span className="text-sm font-medium capitalize">{tx.type.toLowerCase().replace('_', ' ')}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-sm bg-neutral-800 px-2 py-0.5 rounded">{tx.asset}</span>
+                        </td>
+                        <td className="px-6 py-4 font-mono text-sm">{amtDisplay}</td>
+                        <td className="px-6 py-4 text-sm text-gray-300">
+                          {usdNum !== null && !isNaN(usdNum) ? `$${usdNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[tx.status] || 'text-gray-400 bg-gray-400/10'}`}>
+                            {tx.status}
                           </span>
-                          <span className="text-sm font-medium capitalize">{tx.type}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-sm bg-neutral-800 px-2 py-0.5 rounded">{tx.asset}</span>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-sm">{parseFloat(tx.amount).toFixed(8)}</td>
-                      <td className="px-6 py-4 text-sm text-gray-300">
-                        {tx.usdValue ? `$${parseFloat(tx.usdValue).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${STATUS_COLORS[tx.status] || 'text-gray-400 bg-gray-400/10'}`}>
-                          {tx.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {tx.txHash ? (
-                          <span className="font-mono text-xs text-[#ff6a00] truncate block max-w-[120px]" title={tx.txHash}>
-                            {tx.txHash.substring(0, 12)}...
-                          </span>
-                        ) : (
-                          <span className="text-gray-600">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-400">
-                        {new Date(tx.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="px-6 py-4">
+                          {tx.txHash ? (
+                            <span className="font-mono text-xs text-[#ff6a00] truncate block max-w-[120px]" title={tx.txHash}>
+                              {tx.txHash.substring(0, 12)}...
+                            </span>
+                          ) : (
+                            <span className="text-gray-600">—</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-400">
+                          {new Date(tx.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

@@ -42,6 +42,9 @@ import { AdminKYC } from "./pages/Admin/AdminKYC";
 import { AdminUsers } from "./pages/Admin/AdminUsers";
 import { AdminUserDetail } from "./pages/Admin/AdminUserDetail";
 import { AdminWalletSettings } from "./pages/Admin/AdminWalletSettings";
+import { AdminCopyTraders } from "./pages/Admin/AdminCopyTraders";
+import { AdminReferrals } from "./pages/Admin/AdminReferrals";
+import { AdminRoute } from "./components/AdminRoute";
 
 const EntryPage = () => {
   return (
@@ -102,14 +105,18 @@ export const App = () => {
         <Route path="/withdraw" element={<Withdraw />} />
         <Route path="/support" element={<Support />} />
         
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminOverview />} />
-        <Route path="/admin/deposits" element={<AdminDeposits />} />
-        <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
-        <Route path="/admin/kyc" element={<AdminKYC />} />
-        <Route path="/admin/users" element={<AdminUsers />} />
-        <Route path="/admin/users/:id" element={<AdminUserDetail />} />
-        <Route path="/admin/wallet-settings" element={<AdminWalletSettings />} />
+        {/* Admin Routes (Protected) */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminOverview />} />
+          <Route path="/admin/deposits" element={<AdminDeposits />} />
+          <Route path="/admin/withdrawals" element={<AdminWithdrawals />} />
+          <Route path="/admin/kyc" element={<AdminKYC />} />
+          <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/users/:id" element={<AdminUserDetail />} />
+          <Route path="/admin/referrals" element={<AdminReferrals />} />
+          <Route path="/admin/wallet-settings" element={<AdminWalletSettings />} />
+          <Route path="/admin/copy-traders" element={<AdminCopyTraders />} />
+        </Route>
 
         <Route path="*" element={<EntryPage />} />
       </Routes>

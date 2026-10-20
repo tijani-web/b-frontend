@@ -7,6 +7,8 @@ const NAV = [
   { href: '/admin/withdrawals', label: 'Withdrawals', icon: '⬆️' },
   { href: '/admin/kyc', label: 'KYC', icon: '🪪' },
   { href: '/admin/users', label: 'Users', icon: '👥' },
+  { href: '/admin/referrals', label: 'Referrals', icon: '🎁' },
+  { href: '/admin/copy-traders', label: 'Copy Traders', icon: '📋' },
   { href: '/admin/wallet-settings', label: 'Wallet Settings', icon: '⚙️' },
 ];
 

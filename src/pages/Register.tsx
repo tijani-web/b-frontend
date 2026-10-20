@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 
 const COUNTRIES = [
   'United States', 'United Kingdom', 'Canada', 'Australia', 'Germany', 'France',
@@ -40,6 +40,7 @@ const inputCls = "w-full bg-transparent border border-gray-200 rounded-lg px-4 p
 const labelCls = "block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide";
 
 export const Register = () => {
+  const [searchParams] = useSearchParams();
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', country: '',
     phone: '', password: '', confirmPassword: '', currency: 'USD', referralCode: '',
@@ -50,6 +51,14 @@ export const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const refCode = searchParams.get('ref') || searchParams.get('referral');
+    if (refCode) {
+      setForm((f) => ({ ...f, referralCode: refCode.trim().toUpperCase() }));
+      setShowReferral(true);
+    }
+  }, [searchParams]);
 
   const set = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [field]: e.target.value }));
@@ -141,7 +150,20 @@ export const Register = () => {
           </div>
 
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Get started</h1>
-          <p className="text-gray-400 text-sm mb-8">Create a new account</p>
+          <p className="text-gray-400 text-sm mb-6">Create a new account</p>
+
+          {/* Welcome $50 Bonus Banner */}
+          <div className="mb-6 bg-gradient-to-r from-[#ff6a00]/10 via-[#ff6a00]/5 to-transparent border border-[#ff6a00]/30 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#ff6a00] flex items-center justify-center shrink-0 text-white font-bold text-lg shadow-lg shadow-[#ff6a00]/20">
+              $50
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">Welcome Signup Bonus</p>
+              <p className="text-xs text-gray-600">
+                An automatic <span className="text-[#ff6a00] font-semibold">$50.00 USDT</span> will be credited to your account upon signing up!
+              </p>
+            </div>
+          </div>
 
           {error && (
             <div className="mb-5 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm">{error}</div>
@@ -213,11 +235,29 @@ export const Register = () => {
 
             {/* Referral */}
             <div>
-              <button type="button" onClick={() => setShowReferral(v => !v)} className="text-sm text-[#ff6a00] hover:underline font-medium">
-                Have a referral code?
-              </button>
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setShowReferral(v => !v)} className="text-sm text-[#ff6a00] hover:underline font-medium">
+                  {showReferral ? 'Referral code' : 'Have a referral code?'}
+                </button>
+                {form.referralCode && (
+                  <span className="text-[11px] text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-md">
+                    Code applied
+                  </span>
+                )}
+              </div>
               {showReferral && (
-                <input type="text" value={form.referralCode} onChange={set('referralCode')} className={inputCls + ' mt-2'} placeholder="Enter referral code" />
+                <div className="mt-2 space-y-1">
+                  <input
+                    type="text"
+                    value={form.referralCode}
+                    onChange={(e) => setForm((f) => ({ ...f, referralCode: e.target.value.toUpperCase() }))}
+                    className={inputCls}
+                    placeholder="e.g. BLF-XXXXXX"
+                  />
+                  <p className="text-[11px] text-gray-400">
+                    * Valid referral codes must be from an existing member. Fake codes are rejected.
+                  </p>
+                </div>
               )}
             </div>
 

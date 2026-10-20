@@ -23,7 +23,9 @@ export const Signals = () => {
   const [activeTab, setActiveTab] = useState<'signals' | 'history' | 'howItWorks'>('signals');
   const [packages, setPackages] = useState<SignalPackage[]>([]);
   const [balance, setBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [activeSignal, setActiveSignal] = useState<string | null>(null);
+  const [activeStrength, setActiveStrength] = useState<number>(0);
   const [history, setHistory] = useState<any[]>([]);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,9 @@ export const Signals = () => {
       });
       const data = await res.json();
       if (data.balance !== undefined) setBalance(data.balance);
+      if (data.walletBalance !== undefined) setWalletBalance(data.walletBalance);
       if (data.activeSignal) setActiveSignal(data.activeSignal);
+      if (data.activeStrength !== undefined) setActiveStrength(data.activeStrength);
       if (data.purchases) setHistory(data.purchases);
     } catch {}
   };
@@ -127,15 +131,32 @@ export const Signals = () => {
               </button>
             </div>
             <div>
-              <div className="text-sm text-gray-400 mb-2">Signal strength</div>
-              <div className="flex gap-0.5 flex-wrap">
-                {Array.from({ length: 20 }).map((_, i) => (
-                  <div key={i} className={`h-4 w-3 rounded-sm ${i < 2 ? 'bg-red-600' : 'bg-[#2a2a2a]'}`} />
-                ))}
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm text-gray-400">Signal strength</span>
+                <span className="text-xs font-bold text-[#ff6a00]">{activeStrength}%</span>
               </div>
-              <div className="text-xs text-gray-600 mt-1 text-right">0%</div>
-              <div className="text-sm text-gray-500 mt-2">
-                Your active signal is: <span className="text-white">{activeSignal || '-'}</span>
+              <div className="flex gap-1 flex-wrap">
+                {Array.from({ length: 20 }).map((_, i) => {
+                  const threshold = Math.round((activeStrength / 100) * 20);
+                  const isLit = i < threshold;
+                  return (
+                    <div
+                      key={i}
+                      className={`h-4 w-3 rounded-sm transition-colors duration-300 ${
+                        isLit
+                          ? activeStrength >= 70
+                            ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.4)]'
+                            : activeStrength >= 40
+                            ? 'bg-[#ff6a00] shadow-[0_0_6px_rgba(255,106,0,0.4)]'
+                            : 'bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.4)]'
+                          : 'bg-[#222]'
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+              <div className="text-sm text-gray-400 mt-2.5">
+                Your active signal is: <span className="text-white font-semibold">{activeSignal || 'None'}</span>
               </div>
             </div>
           </div>
@@ -170,47 +191,85 @@ export const Signals = () => {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {packages.map(pkg => (
-                    <div key={pkg.id} className="bg-[#141414] border border-[#222] rounded-xl p-5 flex flex-col gap-4 hover:border-[#333] transition-colors">
-                      <h3 className="text-[#ff6a00] font-bold text-sm">{pkg.name}</h3>
-                      <div className="space-y-2.5 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500">Signal price</span>
-                          <span className="text-white font-medium">${Number(pkg.price).toLocaleString()}.00</span>
+                  {packages.map(pkg => {
+                    const cost = Number(amounts[pkg.id] || pkg.price);
+                    const hasEnough = walletBalance >= cost;
+                    const isActive = activeSignal === pkg.name;
+
+                    return (
+                      <div
+                        key={pkg.id}
+                        className={`bg-[#141414] border ${
+                          isActive ? 'border-[#ff6a00] shadow-[0_0_15px_rgba(255,106,0,0.15)]' : 'border-[#222]'
+                        } rounded-xl p-5 flex flex-col gap-4 hover:border-[#333] transition-all relative`}
+                      >
+                        {isActive && (
+                          <span className="absolute -top-3 right-4 px-2.5 py-0.5 bg-[#ff6a00] text-black text-[11px] font-extrabold uppercase rounded-full tracking-wider shadow">
+                            Active
+                          </span>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-[#ff6a00] font-bold text-base">{pkg.name}</h3>
+                          <span className="text-xs text-gray-500">Tier #{pkg.strength / 10 || 1}</span>
                         </div>
-                        <div className="flex justify-between items-center border-t border-[#1e1e1e] pt-2.5">
-                          <span className="text-gray-500">Signal strength</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-red-500 font-bold text-xs">{pkg.strength}%</span>
-                            {strengthBars(pkg.strength)}
+
+                        <div className="space-y-2.5 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-400">Signal price</span>
+                            <span className="text-white font-semibold">${Number(pkg.price).toLocaleString()}.00</span>
+                          </div>
+                          <div className="flex justify-between items-center border-t border-[#1e1e1e] pt-2.5">
+                            <span className="text-gray-400">Signal strength</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-red-500 font-bold text-xs">{pkg.strength}%</span>
+                              {strengthBars(pkg.strength)}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-500 block mb-1">Amount</label>
-                        <div className="flex items-center bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden">
-                          <input
-                            type="number"
-                            value={amounts[pkg.id] || ''}
-                            onChange={e => setAmounts(prev => ({ ...prev, [pkg.id]: e.target.value }))}
-                            className="flex-1 bg-transparent px-3 py-2 text-white text-sm outline-none"
-                          />
-                          <span className="px-3 text-gray-500 text-xs border-l border-[#2a2a2a]">USD</span>
+
+                        <div>
+                          <label className="text-xs text-gray-400 block mb-1.5 font-medium">Purchase Amount</label>
+                          <div className="flex items-center bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg overflow-hidden focus-within:border-[#ff6a00] transition-colors">
+                            <input
+                              type="number"
+                              min="1"
+                              value={amounts[pkg.id] || ''}
+                              onChange={e => setAmounts(prev => ({ ...prev, [pkg.id]: e.target.value }))}
+                              className="flex-1 bg-transparent px-3 py-2 text-white text-sm outline-none"
+                            />
+                            <span className="px-3 text-gray-400 text-xs font-semibold border-l border-[#2a2a2a]">USDT</span>
+                          </div>
+                          <div className="flex justify-between text-xs mt-1.5">
+                            <span className="text-gray-500">Available USDT</span>
+                            <span className={`font-semibold ${hasEnough ? 'text-gray-300' : 'text-amber-400'}`}>
+                              ${walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex justify-between text-xs mt-1">
-                          <span className="text-gray-600">Current balance</span>
-                          <span className="text-gray-600">${balance.toFixed(2)}</span>
-                        </div>
+
+                        {!hasEnough && (
+                          <div className="text-[11px] text-amber-400/90 flex items-center justify-between bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+                            <span>Insufficient balance</span>
+                            <button
+                              onClick={() => navigate('/deposit')}
+                              className="underline font-bold text-amber-300 hover:text-white"
+                            >
+                              Deposit
+                            </button>
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => handlePurchase(pkg.id)}
+                          disabled={purchasing === pkg.id || !hasEnough}
+                          className="w-full py-2.5 rounded-lg text-sm font-bold transition-all bg-[#ff6a00] hover:bg-[#ff7b1a] text-white disabled:bg-[#222] disabled:text-gray-500 disabled:cursor-not-allowed shadow"
+                        >
+                          {purchasing === pkg.id ? 'Processing...' : isActive ? 'Re-activate / Upgrade' : 'Purchase Signal'}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handlePurchase(pkg.id)}
-                        disabled={purchasing === pkg.id}
-                        className="w-full py-2.5 rounded-lg text-sm font-bold transition-colors bg-[#2a2a2a] hover:bg-[#ff6a00] text-gray-300 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {purchasing === pkg.id ? 'Processing...' : 'Purchase'}
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -5,13 +5,47 @@ export const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState<{fullName?: string, kycStatus?: string, email?: string} | null>(null);
+  const [user, setUser] = useState<{fullName?: string, kycStatus?: string, email?: string, referralCode?: string} | null>(null);
 
   const [earnOpen, setEarnOpen] = useState(true);
   const [tradeOpen, setTradeOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(true);
   const [comingSoonDrawer, setComingSoonDrawer] = useState<string | null>(null);
   const [referralDrawer, setReferralDrawer] = useState(false);
+  const [referralData, setReferralData] = useState<{
+    referralCode: string;
+    totalFriends: number;
+    totalEarned: number;
+    pendingBonus: number;
+    referrals: Array<{
+      id: string;
+      name: string;
+      maskedEmail: string;
+      joinedAt: string;
+      bonusStatus: string;
+      bonusAmount: number;
+      coin: string;
+    }>;
+  } | null>(null);
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [referralSearch, setReferralSearch] = useState('');
+
+  const fetchReferralData = () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setReferralLoading(true);
+    fetch('/api/referrals/my', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!d.error) setReferralData(d);
+      })
+      .catch(() => {})
+      .finally(() => setReferralLoading(false));
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -113,7 +147,7 @@ export const Sidebar = () => {
             <NavLink indent to="/mining" label="Mining" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>} />
             <NavLink indent to="/real-estate" label="Real Estate" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>} />
             <NavLink indent to="/stake" label="Stake" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>} />
-            <button onClick={() => setReferralDrawer(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#1c1c1c]/50 pl-9">
+            <button onClick={() => { setReferralDrawer(true); fetchReferralData(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#1c1c1c]/50 pl-9">
               <span className="text-gray-500"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg></span>
               <span className="flex-1 text-left">Referrals</span>
             </button>
@@ -205,65 +239,183 @@ export const Sidebar = () => {
       {referralDrawer && (
         <>
           <div className="fixed inset-0 bg-black/60 z-[60]" onClick={() => setReferralDrawer(false)} />
-          <div className="fixed top-0 right-0 h-full w-[400px] bg-[#1c1c1c] z-[70] shadow-2xl flex flex-col transform transition-transform duration-300">
+          <div className="fixed top-0 right-0 h-full w-[420px] max-w-full bg-[#1c1c1c] z-[70] shadow-2xl flex flex-col transform transition-transform duration-300">
             <div className="flex items-center justify-between p-6 border-b border-[#2a2a2a]">
               <div className="flex items-center gap-3">
                 <button onClick={() => setReferralDrawer(false)} className="text-gray-400 hover:text-white transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
                 </button>
-                <h2 className="text-xl font-bold text-white">Referral program</h2>
+                <h2 className="text-xl font-bold text-white">Referral Program</h2>
               </div>
               <button onClick={() => setReferralDrawer(false)} className="text-gray-400 hover:text-white transition-colors">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             
-            <div className="flex-1 p-6 overflow-y-auto">
-              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
-                Invite your friends to join our platform by using your referral code on sign up! You'll earn $1,000.00 anytime your friends make a deposit on our platform. It's a win-win for everyone!
-              </p>
-              
+            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+              {/* Program Rule Banner */}
+              <div className="bg-[#141414] border border-[#ff6a00]/30 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-2 h-2 rounded-full bg-[#ff6a00]" />
+                  <span className="text-xs font-bold text-[#ff6a00] uppercase tracking-wider">How it works</span>
+                </div>
+                <p className="text-gray-300 text-xs leading-relaxed mb-2">
+                  • <strong>Your Friend Gets:</strong> An automatic <span className="text-[#ff6a00] font-semibold">$50.00 USDT</span> signup bonus directly credited into their account upon registration!
+                </p>
+                <p className="text-gray-300 text-xs leading-relaxed">
+                  • <strong>You Get:</strong> A <span className="text-green-400 font-semibold">5% referral bonus</span> on the first deposit your friend makes once approved by administration.
+                </p>
+              </div>
+
+              {/* Referral Code */}
+              <div className="mb-5">
+                <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">Your Referral Code</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={referralData?.referralCode || user?.referralCode || 'Generating...'}
+                    className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-2 text-white font-mono text-sm tracking-wider outline-none font-bold select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      const code = referralData?.referralCode || user?.referralCode || '';
+                      if (code) {
+                        navigator.clipboard.writeText(code);
+                        setCopiedCode(true);
+                        setTimeout(() => setCopiedCode(false), 2000);
+                      }
+                    }}
+                    className="bg-[#ff6a00] hover:bg-[#ff7b1a] text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+                  >
+                    {copiedCode ? 'COPIED!' : 'COPY'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral Link */}
               <div className="mb-6">
-                <label className="text-sm font-medium text-gray-300 mb-2 block">Your referral balance:</label>
+                <label className="text-xs font-semibold text-gray-400 mb-2 block uppercase tracking-wider">Your Referral Link</label>
                 <div className="flex gap-2">
-                  <input type="text" readOnly value="$0.00" className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-2 text-white outline-none" />
-                  <button className="bg-gray-400 hover:bg-gray-300 text-gray-900 font-bold px-4 py-2 rounded-lg transition-colors">CLAIM</button>
-                </div>
-              </div>
-              
-              <div className="mb-8">
-                <label className="text-sm font-medium text-gray-300 mb-2 block">Your referral code:</label>
-                <div className="flex gap-2">
-                  <input type="text" readOnly value="ZmthdEJXa05SU9JcXN6MUdOWWtwMj" className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-2 text-white outline-none text-sm font-mono truncate" />
-                  <button className="bg-[#ff6a00] hover:bg-[#ff7b1a] text-white font-bold px-4 py-2 rounded-lg transition-colors">COPY</button>
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${window.location.origin}/register?ref=${referralData?.referralCode || user?.referralCode || ''}`}
+                    className="flex-1 bg-[#141414] border border-[#2a2a2a] rounded-lg px-4 py-2 text-gray-300 text-xs font-mono truncate outline-none select-all"
+                  />
+                  <button
+                    onClick={() => {
+                      const code = referralData?.referralCode || user?.referralCode || '';
+                      if (code) {
+                        navigator.clipboard.writeText(`${window.location.origin}/register?ref=${code}`);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }
+                    }}
+                    className="bg-[#2a2a2a] hover:bg-[#333] text-white text-xs font-bold px-4 py-2 rounded-lg transition-colors shrink-0"
+                  >
+                    {copiedLink ? 'COPIED!' : 'COPY LINK'}
+                  </button>
                 </div>
               </div>
 
-              <div className="mb-8">
-                <h3 className="text-sm font-medium text-gray-300 mb-4">Statistics</h3>
-                <div className="flex gap-12">
-                  <div>
-                    <div className="text-gray-500 text-sm mb-1">Friends invited</div>
-                    <div className="text-xl font-bold text-white">0</div>
+              {/* Statistics */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wider">Statistics</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3">
+                    <div className="text-gray-500 text-[11px] mb-1">Invited</div>
+                    <div className="text-lg font-bold text-white">{referralData?.totalFriends ?? 0}</div>
                   </div>
-                  <div>
-                    <div className="text-gray-500 text-sm mb-1">Rewards claimed</div>
-                    <div className="text-xl font-bold text-white">$0.00</div>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3">
+                    <div className="text-gray-500 text-[11px] mb-1">Earned</div>
+                    <div className="text-lg font-bold text-green-400">${(referralData?.totalEarned ?? 0).toFixed(2)}</div>
+                  </div>
+                  <div className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3">
+                    <div className="text-gray-500 text-[11px] mb-1">Pending</div>
+                    <div className="text-lg font-bold text-[#ff6a00]">${(referralData?.pendingBonus ?? 0).toFixed(2)}</div>
                   </div>
                 </div>
               </div>
 
+              {/* Referrals List */}
               <div>
-                <h3 className="text-sm font-medium text-gray-300 mb-4">Referrals</h3>
-                <div className="relative mb-6">
-                  <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                  <input type="text" placeholder="Search for a referral" className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white outline-none placeholder-gray-600 focus:border-[#444]" />
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Referred Friends</h3>
+                  {referralData && (
+                    <span className="text-xs text-gray-500 font-mono">{referralData.referrals.length} Total</span>
+                  )}
                 </div>
 
-                <div className="flex flex-col items-center justify-center py-12">
-                  <svg className="w-12 h-12 text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 4v16m8-8H4" /></svg>
-                  <p className="text-gray-400 text-sm">No referrals yet.</p>
+                <div className="relative mb-4">
+                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                  <input
+                    type="text"
+                    placeholder="Search referrals..."
+                    value={referralSearch}
+                    onChange={(e) => setReferralSearch(e.target.value)}
+                    className="w-full bg-[#141414] border border-[#2a2a2a] rounded-lg pl-9 pr-4 py-2 text-xs text-white outline-none placeholder-gray-600 focus:border-[#ff6a00]"
+                  />
                 </div>
+
+                {referralLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <div className="w-6 h-6 border-2 border-[#ff6a00] border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  (() => {
+                    const filtered = (referralData?.referrals || []).filter(
+                      (r) =>
+                        r.name.toLowerCase().includes(referralSearch.toLowerCase()) ||
+                        r.maskedEmail.toLowerCase().includes(referralSearch.toLowerCase())
+                    );
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-10 text-center bg-[#141414] border border-[#2a2a2a] rounded-xl p-6">
+                          <svg className="w-10 h-10 text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                          <p className="text-gray-300 text-sm font-medium mb-1">No referrals yet</p>
+                          <p className="text-gray-500 text-xs">Share your referral link with friends to earn 5% on their first deposit!</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-2.5">
+                        {filtered.map((r) => (
+                          <div key={r.id} className="bg-[#141414] border border-[#2a2a2a] rounded-xl p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-[#242424] text-[#ff6a00] font-bold text-xs flex items-center justify-center">
+                                {r.maskedEmail.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-white text-xs font-semibold">{r.maskedEmail}</p>
+                                <p className="text-gray-500 text-[10px]">
+                                  Joined {new Date(r.joinedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              {r.bonusStatus === 'APPROVED' ? (
+                                <span className="inline-block text-[10px] font-semibold text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
+                                  +${r.bonusAmount.toFixed(2)} Earned
+                                </span>
+                              ) : r.bonusStatus === 'PENDING' ? (
+                                <span className="inline-block text-[10px] font-semibold text-[#ff6a00] bg-[#ff6a00]/10 px-2 py-0.5 rounded-full">
+                                  ${r.bonusAmount.toFixed(2)} Pending
+                                </span>
+                              ) : (
+                                <span className="inline-block text-[10px] font-semibold text-gray-400 bg-gray-500/10 px-2 py-0.5 rounded-full">
+                                  $50 Bonus Claimed
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                )}
               </div>
             </div>
           </div>

@@ -228,23 +228,21 @@ export const Markets = () => {
 
   const fetchLivePrices = useCallback(async () => {
     try {
-      const res = await fetch(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${COINGECKO_IDS}&vs_currencies=usd&include_24hr_change=true`,
-        { cache: 'no-store' }
-      );
+      const res = await fetch('/api/market/all', { cache: 'no-store' });
       if (!res.ok) return;
-      const data: Record<string, { usd: number; usd_24h_change: number }> = await res.json();
+      const json = await res.json();
+      const data: Record<string, { price: number; change24h: number }> = json.data || {};
 
       setPrices(prev => {
         const next = { ...prev };
-        ALL_MARKET_ASSETS.forEach(asset => {
-          if (asset.cgId && data[asset.cgId]) {
-            next[asset.symbol] = {
-              price: data[asset.cgId].usd,
-              change24h: data[asset.cgId].usd_24h_change ?? 0,
+        for (const [sym, item] of Object.entries(data)) {
+          if (item && typeof item.price === 'number') {
+            next[sym] = {
+              price: item.price,
+              change24h: item.change24h ?? 0,
             };
           }
-        });
+        }
         return next;
       });
       setLastUpdated(new Date());
@@ -263,7 +261,7 @@ export const Markets = () => {
       .finally(() => setLoading(false));
 
     fetchLivePrices();
-    const interval = setInterval(fetchLivePrices, 60_000); // refresh every 60s
+    const interval = setInterval(fetchLivePrices, 8_000); // refresh every 8s for live real-time feel
     return () => clearInterval(interval);
   }, [navigate, fetchLivePrices]);
 
@@ -434,7 +432,7 @@ export const Markets = () => {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
-                          onClick={() => navigate('/trade')}
+                          onClick={() => navigate('/dashboard', { state: { selectedAsset: asset.symbol } })}
                           className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors ${balance > 0 ? 'bg-[#ff6a00] text-white' : 'bg-[#1a1a1a] text-gray-300 hover:bg-[#ff6a00] hover:text-white'}`}
                         >
                           Trade
@@ -447,8 +445,9 @@ export const Markets = () => {
             </table>
           </div>
 
-          <p className="text-gray-600 text-xs mt-3 text-center">
-            Showing {filteredAssets.length} of {ALL_MARKET_ASSETS.length} assets · Prices update every 60 seconds via CoinGecko
+          <p className="text-gray-500 text-xs mt-3 text-center flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#26A17B] animate-pulse"></span>
+            Showing {filteredAssets.length} of {ALL_MARKET_ASSETS.length} assets · Live real-time market data feed
           </p>
         </div>
       </div>
@@ -525,7 +524,7 @@ export const Markets = () => {
                     {isPos ? '+' : ''}{change.toFixed(2)}%
                   </div>
                   <button
-                    onClick={() => navigate('/trade')}
+                    onClick={() => navigate('/dashboard', { state: { selectedAsset: asset.symbol } })}
                     className="mt-1 text-[10px] font-bold text-[#ff6a00] hover:underline"
                   >
                     Trade →

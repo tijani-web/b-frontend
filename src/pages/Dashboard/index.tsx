@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { BottomNav } from './layout/BottomNav';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 import { MobileMenu } from './layout/MobileMenu';
+
+const STABLECOINS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD']);
 
 interface Wallet {
   id: string;
@@ -34,24 +36,44 @@ const ASSET_META: Record<string, { name: string; color: string; icon: string }> 
 
 const MOBILE_TABS = ['Crypto', 'DeFi', 'Mining', 'History'];
 
+const INITIAL_PRICES: Record<string, number> = {
+  BTC: 82180,
+  ETH: 3240,
+  SOL: 154,
+  BNB: 585,
+  USDT: 1.0,
+  USDC: 1.0,
+  AAPL: 182.4,
+};
+
 export const Dashboard = () => {
+  const location = useLocation();
+  const locationState = location.state as { selectedAsset?: string } | null;
+
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [prices, setPrices] = useState<Record<string, number>>(INITIAL_PRICES);
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeRecord[]>([]);
   const [mobileTab, setMobileTab] = useState('Crypto');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [timeframe, setTimeframe] = useState<'1' | '30' | '60' | 'D'>('D');
+  const [chartExpanded, setChartExpanded] = useState(false);
 
   // Trade Panel State
   const [tradeTab, setTradeTab] = useState<'buy' | 'sell' | 'convert'>('buy');
   const [tradeAmount, setTradeAmount] = useState('100');
-  const [selectedAsset, setSelectedAsset] = useState('BTC');
+  const [selectedAsset, setSelectedAsset] = useState(locationState?.selectedAsset || 'BTC');
   const [isExecuting, setIsExecuting] = useState(false);
   const [leverage, setLeverage] = useState(5);
   
   const [tradeError, setTradeError] = useState('');
   const [tradeSuccess, setTradeSuccess] = useState('');
+
+  // Convert state (mirrors Trade.tsx)
+  const [convertFrom, setConvertFrom] = useState('BTC');
+  const [convertTo, setConvertTo] = useState('USDT');
+  const [convertAmount, setConvertAmount] = useState('0.01');
 
   const navigate = useNavigate();
 
@@ -80,6 +102,33 @@ export const Dashboard = () => {
     } catch (e) {}
   };
 
+  const fetchPrices = async () => {
+    try {
+      const r = await fetch('/api/market/all', { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const raw = data.data;
+      if (raw) {
+        const priceMap: Record<string, number> = {};
+        if (Array.isArray(raw)) {
+          for (const asset of raw) {
+            if (asset?.symbol) {
+              priceMap[asset.symbol] = STABLECOINS.has(asset.symbol) ? 1.0 : (Number(asset.price) || 0);
+            }
+          }
+        } else if (typeof raw === 'object') {
+          for (const [sym, asset] of Object.entries(raw)) {
+            const val = (asset as any)?.price;
+            priceMap[sym] = STABLECOINS.has(sym) ? 1.0 : (Number(val) || 0);
+          }
+        }
+        // Guarantee 1.00 for all stablecoins
+        STABLECOINS.forEach((s) => { priceMap[s] = 1.0; });
+        setPrices((prev) => ({ ...prev, ...priceMap }));
+      }
+    } catch (e) {}
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -91,14 +140,23 @@ export const Dashboard = () => {
     Promise.all([
       fetchWallets(token),
       fetchHistory(token),
-      fetch('/api/market/prices?symbols=BTC,ETH,USDT,USDC,SOL,BNB,AAPL').then(r => r.json()).then(data => setPrices(data.data || {}))
+      fetchPrices()
     ]).finally(() => setLoading(false));
+
+    // Poll live prices every 8 seconds
+    const priceInterval = setInterval(fetchPrices, 8000);
+    return () => clearInterval(priceInterval);
   }, [navigate]);
 
-  const totalBalanceUSD = wallets.reduce((sum, w) => {
-    const price = prices[w.coin] ?? 0;
-    return sum + Number(w.balance) * price;
-  }, 0);
+  const totalBalanceUSD = useMemo(() => {
+    if (!wallets || wallets.length === 0) return 0;
+    return wallets.reduce((sum, w) => {
+      const bal = Number(w.balance);
+      if (isNaN(bal) || bal <= 0) return sum;
+      const price = STABLECOINS.has(w.coin) ? 1.0 : (prices[w.coin] ?? 0);
+      return sum + bal * price;
+    }, 0);
+  }, [wallets, prices]);
 
   const displayWallets = wallets.length > 0 ? wallets : [
     { id: '1', coin: 'BTC', balance: '0' },
@@ -118,8 +176,14 @@ export const Dashboard = () => {
       fromAsset = selectedAsset;
       toAsset = 'USDT';
     } else if (tradeTab === 'convert') {
-      fromAsset = selectedAsset;
-      toAsset = 'USDT'; // Simplified convert for now
+      fromAsset = convertFrom;
+      toAsset = convertTo;
+    }
+
+    const amount = tradeTab === 'convert' ? Number(convertAmount) : Number(tradeAmount);
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      setTradeError('Please enter a valid amount');
+      return;
     }
 
     setIsExecuting(true);
@@ -129,17 +193,13 @@ export const Dashboard = () => {
       const res = await fetch('/api/trade/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          fromAsset,
-          toAsset,
-          amount: Number(tradeAmount)
-        })
+        body: JSON.stringify({ fromAsset, toAsset, amount })
       });
       const data = await res.json();
       if (!res.ok) {
         setTradeError(data.error || 'Trade failed');
       } else {
-        setTradeSuccess(`Trade executed successfully! Received ${data.receivedAmount.toFixed(4)} ${toAsset}`);
+        setTradeSuccess(`Trade executed! Received ${Number(data.receivedAmount).toFixed(6)} ${toAsset}`);
         fetchWallets(token);
         fetchHistory(token);
       }
@@ -319,7 +379,6 @@ export const Dashboard = () => {
                         </div>
                         <div className="text-right">
                           <p className="font-bold text-white text-sm">{balanceVisible ? `$${val.toFixed(2)}` : '••••'}</p>
-                          <p className="text-[#26A17B] text-xs mt-0.5">Up to 4.63% APY</p>
                         </div>
                       </div>
                     );
@@ -327,15 +386,61 @@ export const Dashboard = () => {
             </div>
           )}
           {mobileTab === 'Crypto' && selectedAsset && (
-            <div className="mt-6 w-full h-[350px] bg-[#0A0A0A] rounded-xl overflow-hidden border border-[#1a1a1a]">
-              <AdvancedRealTimeChart 
-                theme="dark"
-                symbol={`BINANCE:${selectedAsset}USDT`}
-                allow_symbol_change={true}
-                save_image={false}
-                hide_side_toolbar={true}
-                autosize
-              />
+            <div className="mt-6 w-full bg-[#0A0A0A] rounded-xl overflow-hidden border border-[#1a1a1a]">
+              {/* Timeframe + Expand controls */}
+              <div className="flex items-center justify-between px-3 py-2 bg-[#141414] border-b border-[#222]">
+                <span className="text-white text-xs font-bold">{selectedAsset}/USDT</span>
+                <div className="flex items-center gap-1.5">
+                  {[
+                    { label: '1m', val: '1' },
+                    { label: '30m', val: '30' },
+                    { label: '1H', val: '60' },
+                    { label: 'D', val: 'D' },
+                  ].map(tf => (
+                    <button
+                      key={tf.val}
+                      onClick={() => setTimeframe(tf.val as any)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${
+                        timeframe === tf.val ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setChartExpanded(!chartExpanded)}
+                    className="ml-1 p-1 rounded text-gray-400 hover:text-white bg-[#1a1a1a] transition-colors"
+                    title={chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {chartExpanded ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                      )}
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'h-[350px]'}>
+                <AdvancedRealTimeChart 
+                  theme="dark"
+                  symbol={`BINANCE:${selectedAsset}USDT`}
+                  interval={timeframe}
+                  allow_symbol_change={true}
+                  save_image={false}
+                  hide_side_toolbar={true}
+                  autosize
+                />
+                {chartExpanded && (
+                  <button
+                    onClick={() => setChartExpanded(false)}
+                    className="absolute top-4 right-4 z-10 bg-[#141414] border border-[#333] text-white text-xs px-3 py-1.5 rounded-lg"
+                  >
+                    ✕ Close
+                  </button>
+                )}
+              </div>
             </div>
           )}
           {/* Trade Panel - shown below chart on mobile in Crypto tab */}
@@ -344,70 +449,146 @@ export const Dashboard = () => {
               <div className="flex bg-[#0A0A0A] rounded-lg p-1 mb-4">
                 <button onClick={() => setTradeTab('buy')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : 'text-gray-400'}`}>Buy</button>
                 <button onClick={() => setTradeTab('sell')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'sell' ? 'bg-red-500 text-white' : 'text-gray-400'}`}>Sell</button>
-                <button onClick={() => setTradeTab('convert')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'convert' ? 'bg-blue-500 text-white' : 'text-gray-400'}`}>Convert</button>
+                <button onClick={() => setTradeTab('convert')} className={`flex-1 text-xs font-bold py-2 rounded-md transition-colors ${tradeTab === 'convert' ? 'bg-[#ff6a00] text-black' : 'text-gray-400'}`}>Convert</button>
               </div>
-              <div className="space-y-3">
-                <div className="bg-[#0A0A0A] border border-[#222] rounded-lg flex items-center px-3 py-2.5 focus-within:border-[#ff6a00] transition-colors">
-                  <input
-                    type="number"
-                    value={tradeAmount}
-                    onChange={(e) => setTradeAmount(e.target.value)}
-                    className="bg-transparent text-sm font-bold w-full focus:outline-none"
-                    placeholder="0.00"
-                  />
-                  <span className="text-xs text-gray-400 font-bold">{tradeTab === 'buy' ? 'USDT' : selectedAsset}</span>
-                </div>
-                <div className="flex justify-between text-[10px] mt-1">
-                  <span className="text-gray-500">Current {selectedAsset} price</span>
-                  <span className="text-green-500 font-bold">${(prices[selectedAsset] || 0).toLocaleString()}</span>
-                </div>
 
-                <div className="pt-2">
-                  <label className="block text-[10px] text-gray-500 font-medium mb-2">Leverage</label>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 relative flex items-center h-4">
-                      <div className="absolute w-full h-[1px] bg-gray-600"></div>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="100" 
-                        value={leverage} 
-                        onChange={(e) => setLeverage(Number(e.target.value))}
-                        className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#ff6a00] [&::-webkit-slider-thumb]:rounded-[1px] cursor-pointer z-10" 
-                      />
+              {tradeTab === 'convert' ? (
+                /* ── Inline Convert UI ── */
+                <div className="space-y-3">
+                  {/* From */}
+                  <div className="bg-[#0A0A0A] border border-[#222] rounded-xl p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-gray-500 text-[10px] font-medium">From</span>
+                      <div className="flex gap-1.5 text-[10px]">
+                        {['25%','50%','75%','MAX'].map(p => (
+                          <button key={p} onClick={() => {
+                            const bal = Number(wallets.find(w => w.coin === convertFrom)?.balance ?? 0);
+                            if (p === '25%') setConvertAmount((bal * 0.25).toFixed(6));
+                            else if (p === '50%') setConvertAmount((bal * 0.5).toFixed(6));
+                            else if (p === '75%') setConvertAmount((bal * 0.75).toFixed(6));
+                            else setConvertAmount(bal.toString());
+                          }} className="px-1.5 py-0.5 bg-[#1a1a1a] hover:bg-[#ff6a00]/20 hover:text-[#ff6a00] rounded font-medium transition-colors">{p}</button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="bg-[#1a1a1a] border border-[#222] rounded px-2 py-1 text-xs font-bold w-12 text-center">{leverage}x</div>
+                    <div className="flex items-center gap-2">
+                      <input type="number" value={convertAmount} onChange={e => setConvertAmount(e.target.value)}
+                        className="bg-transparent text-white text-xl font-bold flex-1 outline-none placeholder-gray-600" placeholder="0.00" />
+                      <select
+                        value={convertFrom}
+                        onChange={e => setConvertFrom(e.target.value)}
+                        className="bg-[#1a1a1a] border border-[#333] text-white text-xs font-bold rounded-lg px-2 py-1.5 outline-none"
+                      >
+                        {wallets.map(w => <option key={w.coin} value={w.coin}>{w.coin}</option>)}
+                      </select>
+                    </div>
+                    <div className="text-gray-500 text-[10px] mt-1">
+                      Bal: {Number(wallets.find(w => w.coin === convertFrom)?.balance ?? 0).toFixed(6)} {convertFrom}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center justify-between pt-1">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-3.5 h-3.5 rounded bg-transparent border-gray-600 appearance-none border checked:bg-[#ff6a00] checked:border-transparent flex items-center justify-center relative after:content-[''] after:absolute after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 after:top-0 after:left-1 transition-all" />
-                    <span className="text-xs font-bold">Use TP/SL</span>
-                  </label>
-                  <button className="bg-[#1a1a1a] border border-[#222] rounded-full px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">
-                    Set with AI
+                  {/* Swap arrow */}
+                  <div className="flex justify-center">
+                    <button onClick={() => { const t = convertFrom; setConvertFrom(convertTo); setConvertTo(t); }}
+                      className="w-8 h-8 bg-[#141414] border border-[#333] rounded-full flex items-center justify-center text-[#ff6a00] hover:bg-[#ff6a00] hover:text-white transition-all">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" /></svg>
+                    </button>
+                  </div>
+
+                  {/* To */}
+                  <div className="bg-[#0A0A0A] border border-[#222] rounded-xl p-3">
+                    <span className="text-gray-500 text-[10px] font-medium">To (Estimated)</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-white text-xl font-bold flex-1">
+                        {prices[convertTo] && prices[convertFrom] && Number(convertAmount) > 0
+                          ? (((prices[convertFrom] || 0) * Number(convertAmount)) / prices[convertTo]).toFixed(6)
+                          : '0.00'}
+                      </span>
+                      <select
+                        value={convertTo}
+                        onChange={e => setConvertTo(e.target.value)}
+                        className="bg-[#1a1a1a] border border-[#333] text-white text-xs font-bold rounded-lg px-2 py-1.5 outline-none"
+                      >
+                        {['USDT','BTC','ETH','SOL','BNB','USDC'].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
+                    <div className="text-gray-500 text-[10px] mt-1">
+                      1 {convertFrom} ≈ {((prices[convertFrom] || 1) / (prices[convertTo] || 1)).toFixed(6)} {convertTo}
+                    </div>
+                  </div>
+
+                  {tradeError && <div className="text-red-400 text-xs font-medium text-center bg-red-400/10 py-2 rounded-lg">{tradeError}</div>}
+                  {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center bg-[#26A17B]/10 py-2 rounded-lg">{tradeSuccess}</div>}
+                  <button onClick={handleExecuteTrade} disabled={isExecuting}
+                    className="w-full py-3 rounded-xl font-bold text-sm bg-[#ff6a00] text-black transition-opacity disabled:opacity-50">
+                    {isExecuting ? 'Converting...' : `Convert ${convertFrom} → ${convertTo}`}
                   </button>
                 </div>
-
-                <div className="pb-2">
-                  <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
-                  <div className="bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
-                    2 minutes
-                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              ) : (
+                /* ── Buy / Sell UI ── */
+                <div className="space-y-3">
+                  <div className="bg-[#0A0A0A] border border-[#222] rounded-lg flex items-center px-3 py-2.5 focus-within:border-[#ff6a00] transition-colors">
+                    <input
+                      type="number"
+                      value={tradeAmount}
+                      onChange={(e) => setTradeAmount(e.target.value)}
+                      className="bg-transparent text-sm font-bold w-full focus:outline-none"
+                      placeholder="0.00"
+                    />
+                    <span className="text-xs text-gray-400 font-bold">{tradeTab === 'buy' ? 'USDT' : selectedAsset}</span>
                   </div>
-                </div>
+                  <div className="flex justify-between text-[10px] mt-1">
+                    <span className="text-gray-500">Current {selectedAsset} price</span>
+                    <span className="text-green-500 font-bold">${(prices[selectedAsset] || 0).toLocaleString()}</span>
+                  </div>
 
-                {tradeError && <div className="text-red-400 text-xs font-medium text-center">{tradeError}</div>}
-                {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center">{tradeSuccess}</div>}
-                <button
-                  onClick={handleExecuteTrade}
-                  disabled={isExecuting}
-                  className={`w-full py-3 rounded-xl font-bold text-sm transition-opacity ${isExecuting ? 'opacity-50' : 'active:opacity-80'} ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : tradeTab === 'sell' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-                >
-                  {isExecuting ? 'Executing...' : `${tradeTab === 'buy' ? 'Buy' : tradeTab === 'sell' ? 'Sell' : 'Convert'} ${selectedAsset}`}
-                </button>
-              </div>
+                  <div className="pt-2">
+                    <label className="block text-[10px] text-gray-500 font-medium mb-2">Leverage</label>
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 relative flex items-center h-4">
+                        <div className="absolute w-full h-[1px] bg-gray-600"></div>
+                        <input 
+                          type="range" 
+                          min="1" 
+                          max="100" 
+                          value={leverage} 
+                          onChange={(e) => setLeverage(Number(e.target.value))}
+                          className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#ff6a00] [&::-webkit-slider-thumb]:rounded-[1px] cursor-pointer z-10" 
+                        />
+                      </div>
+                      <div className="bg-[#1a1a1a] border border-[#222] rounded px-2 py-1 text-xs font-bold w-12 text-center">{leverage}x</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" className="w-3.5 h-3.5 rounded bg-transparent border-gray-600 appearance-none border checked:bg-[#ff6a00] checked:border-transparent" />
+                      <span className="text-xs font-bold">Use TP/SL</span>
+                    </label>
+                    <button className="bg-[#1a1a1a] border border-[#222] rounded-full px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">
+                      Set with AI
+                    </button>
+                  </div>
+
+                  <div className="pb-2">
+                    <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
+                    <div className="bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
+                      2 minutes
+                      <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </div>
+
+                  {tradeError && <div className="text-red-400 text-xs font-medium text-center bg-red-400/10 py-2 rounded-lg">{tradeError}</div>}
+                  {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center bg-[#26A17B]/10 py-2 rounded-lg">{tradeSuccess}</div>}
+                  <button
+                    onClick={handleExecuteTrade}
+                    disabled={isExecuting}
+                    className={`w-full py-3 rounded-xl font-bold text-sm transition-opacity ${isExecuting ? 'opacity-50' : 'active:opacity-80'} ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : 'bg-red-500 text-white'}`}
+                  >
+                    {isExecuting ? 'Executing...' : `${tradeTab === 'buy' ? 'Buy' : 'Sell'} ${selectedAsset}`}
+                  </button>
+                </div>
+              )}
               <MyTradesSection />
             </div>
           )}
@@ -433,21 +614,36 @@ export const Dashboard = () => {
           )}
           {mobileTab === 'History' && (
             <div>
-              {loading ? <p className="text-gray-500 text-sm text-center py-8">Loading...</p>
-                : trades.length === 0 ? <p className="text-gray-500 text-sm text-center py-8">No trades yet.</p>
-                : trades.slice(0,10).map(trade => (
+              {loading ? (
+                <p className="text-gray-500 text-sm text-center py-8">Loading...</p>
+              ) : trades.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-gray-500 text-sm">No recent trades yet.</p>
+                  <button onClick={() => navigate('/transactions')} className="mt-3 text-xs text-[#ff6a00] hover:underline font-semibold">
+                    View Complete Transaction History →
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {trades.slice(0, 10).map(trade => (
                     <div key={trade.id} className="flex items-center justify-between py-3.5 border-b border-[#1a1a1a]">
                       <div>
-                        <p className="text-white font-semibold text-sm">{trade.asset.replace('_TO_','/')}</p>
+                        <p className="text-white font-semibold text-sm">{trade.asset.replace('_TO_', '/')}</p>
                         <p className="text-gray-500 text-xs mt-0.5">{new Date(trade.createdAt).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-white text-sm">${Number(trade.usdValue||0).toFixed(2)}</p>
+                        <p className="font-bold text-white text-sm">${Number(trade.usdValue || 0).toFixed(2)}</p>
                         <span className="text-xs text-[#26A17B]">{trade.status}</span>
                       </div>
                     </div>
-                  ))
-              }
+                  ))}
+                  <div className="pt-4 text-center">
+                    <button onClick={() => navigate('/transactions')} className="w-full py-2.5 bg-[#141414] hover:bg-[#1f1f1f] border border-[#262626] rounded-xl text-xs font-semibold text-[#ff6a00] transition-colors">
+                      View Complete Transaction History →
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -556,25 +752,54 @@ export const Dashboard = () => {
             </div>
 
             {/* Bottom Left: TradingView Chart Area */}
-            <div className="flex-1 p-0 min-h-[500px] flex flex-col bg-[#0A0A0A]">
-              <div className="flex items-center gap-4 px-4 py-3 border-b border-[#1a1a1a]">
-                <div className="flex items-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-white text-black font-bold flex items-center justify-center text-xs">
-                    {ASSET_META[selectedAsset]?.icon || '$'}
-                  </span>
-                  <span className="font-bold text-sm">{selectedAsset}/USDT</span>
+            <div className={`flex flex-col bg-[#0A0A0A] transition-all duration-300 ${chartExpanded ? 'fixed inset-0 z-50 p-6 bg-[#0A0A0A]' : 'flex-1 p-0 min-h-[520px]'}`}>
+              <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 rounded-full bg-white text-black font-bold flex items-center justify-center text-xs">
+                      {ASSET_META[selectedAsset]?.icon || '$'}
+                    </span>
+                    <span className="font-bold text-sm">{selectedAsset}/USDT</span>
+                  </div>
+                  {/* Timeframes: 1m, 30m, 1H, D */}
+                  <div className="text-gray-500 text-xs flex gap-1.5 bg-[#141414] p-1 rounded-lg border border-[#222]">
+                    {[
+                      { label: '1m', val: '1' },
+                      { label: '30m', val: '30' },
+                      { label: '1H', val: '60' },
+                      { label: 'D', val: 'D' },
+                    ].map((tf) => (
+                      <button
+                        key={tf.val}
+                        onClick={() => setTimeframe(tf.val as any)}
+                        className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                          timeframe === tf.val ? 'bg-[#ff6a00] text-black font-bold' : 'hover:text-white'
+                        }`}
+                      >
+                        {tf.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-gray-500 text-xs flex gap-3">
-                  <span className="hover:text-white cursor-pointer transition-colors">1m</span>
-                  <span className="hover:text-white cursor-pointer transition-colors">30m</span>
-                  <span className="hover:text-white cursor-pointer transition-colors">1H</span>
-                  <span className="text-[#ff6a00] font-medium cursor-pointer">D</span>
-                </div>
+                <button
+                  onClick={() => setChartExpanded(!chartExpanded)}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-[#141414] border border-[#222] px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {chartExpanded ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                    )}
+                  </svg>
+                  {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
+                </button>
               </div>
-              <div className="flex-1 relative w-full h-full">
+              <div className="flex-1 relative w-full h-full min-h-[460px]">
                 <AdvancedRealTimeChart 
                   theme="dark"
                   symbol={`BINANCE:${selectedAsset}USDT`}
+                  interval={timeframe}
                   allow_symbol_change={true}
                   save_image={false}
                   hide_side_toolbar={false}
@@ -655,89 +880,105 @@ export const Dashboard = () => {
                 </button>
               </div>
 
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Trade pair</label>
-                  <div className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-medium flex justify-between items-center cursor-pointer">
-                    {selectedAsset} / USDT
-                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Amount {tradeTab === 'buy' ? '(USDT)' : `(${selectedAsset})`}</label>
-                  <div className="bg-[#141414] border border-[#222] rounded-lg flex items-center px-3 py-2 focus-within:border-[#ff6a00] transition-colors">
-                    <input 
-                      type="number" 
-                      value={tradeAmount} 
-                      onChange={(e) => setTradeAmount(e.target.value)}
-                      className="bg-transparent text-sm font-bold w-full focus:outline-none" 
-                      placeholder="0.00"
-                    />
-                    <div className="flex items-center gap-1 bg-[#1a1a1a] px-2 py-1 rounded text-xs font-bold cursor-pointer">
-                      <span className="w-3 h-3 rounded-full flex items-center justify-center text-black" style={{ backgroundColor: tradeTab === 'buy' ? '#26A17B' : ASSET_META[selectedAsset]?.color || '#F7931A' }}>
-                        {tradeTab === 'buy' ? '₮' : (ASSET_META[selectedAsset]?.icon || '$')}
-                      </span>
-                      {tradeTab === 'buy' ? 'USDT' : selectedAsset}
+                {tradeTab === 'convert' ? (
+                  /* ── Desktop Convert: redirect to Trade page for full experience ── */
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <div className="w-14 h-14 bg-[#1a1a1a] rounded-2xl flex items-center justify-center mb-4">
+                      <svg className="w-7 h-7 text-[#ff6a00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                     </div>
+                    <p className="text-white font-bold mb-1 text-sm">Full Convert Suite</p>
+                    <p className="text-gray-500 text-xs mb-4">Use the Trade page for multi-asset convert with live quotes and percentage presets</p>
+                    <button onClick={() => navigate('/trade', { state: { tradeTab: 'convert', selectedAsset } })}
+                      className="bg-[#ff6a00] text-black font-bold px-6 py-2.5 rounded-xl text-sm">
+                      Open Convert in Trade
+                    </button>
                   </div>
-                  <div className="flex justify-between text-[10px] mt-2">
-                    <span className="text-gray-500">Available Balance</span>
-                    <span className="font-bold">{tradeTab === 'buy' ? `${Number(usdtBalance).toFixed(2)} USDT` : `${Number(wallets.find(w => w.coin === selectedAsset)?.balance || 0).toFixed(6)} ${selectedAsset}`}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] mt-1">
-                    <span className="text-gray-500">Current {selectedAsset} price</span>
-                    <span className="text-green-500 font-bold">${assetPrice.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-gray-500 font-medium mb-2">Leverage</label>
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 relative flex items-center h-4">
-                      <div className="absolute w-full h-[1px] bg-gray-600"></div>
-                      <input 
-                        type="range" 
-                        min="1" 
-                        max="100" 
-                        value={leverage} 
-                        onChange={(e) => setLeverage(Number(e.target.value))}
-                        className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#ff6a00] [&::-webkit-slider-thumb]:rounded-[1px] cursor-pointer z-10" 
-                      />
+                ) : (
+                  /* ── Buy / Sell UI ── */
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Trade pair</label>
+                      <div className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-medium flex justify-between items-center cursor-pointer">
+                        {selectedAsset} / USDT
+                        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
                     </div>
-                    <div className="bg-[#141414] border border-[#222] rounded px-2 py-1 text-xs font-bold w-12 text-center">{leverage}x</div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Amount {tradeTab === 'buy' ? '(USDT)' : `(${selectedAsset})`}</label>
+                      <div className="bg-[#141414] border border-[#222] rounded-lg flex items-center px-3 py-2 focus-within:border-[#ff6a00] transition-colors">
+                        <input 
+                          type="number" 
+                          value={tradeAmount} 
+                          onChange={(e) => setTradeAmount(e.target.value)}
+                          className="bg-transparent text-sm font-bold w-full focus:outline-none" 
+                          placeholder="0.00"
+                        />
+                        <div className="flex items-center gap-1 bg-[#1a1a1a] px-2 py-1 rounded text-xs font-bold cursor-pointer">
+                          <span className="w-3 h-3 rounded-full flex items-center justify-center text-black" style={{ backgroundColor: tradeTab === 'buy' ? '#26A17B' : ASSET_META[selectedAsset]?.color || '#F7931A' }}>
+                            {tradeTab === 'buy' ? '₮' : (ASSET_META[selectedAsset]?.icon || '$')}
+                          </span>
+                          {tradeTab === 'buy' ? 'USDT' : selectedAsset}
+                        </div>
+                      </div>
+                      <div className="flex justify-between text-[10px] mt-2">
+                        <span className="text-gray-500">Available Balance</span>
+                        <span className="font-bold">{tradeTab === 'buy' ? `${Number(usdtBalance).toFixed(2)} USDT` : `${Number(wallets.find(w => w.coin === selectedAsset)?.balance || 0).toFixed(6)} ${selectedAsset}`}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px] mt-1">
+                        <span className="text-gray-500">Current {selectedAsset} price</span>
+                        <span className="text-green-500 font-bold">${assetPrice.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-medium mb-2">Leverage</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 relative flex items-center h-4">
+                          <div className="absolute w-full h-[1px] bg-gray-600"></div>
+                          <input 
+                            type="range" 
+                            min="1" 
+                            max="100" 
+                            value={leverage} 
+                            onChange={(e) => setLeverage(Number(e.target.value))}
+                            className="absolute w-full appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-[#ff6a00] [&::-webkit-slider-thumb]:rounded-[1px] cursor-pointer z-10" 
+                          />
+                        </div>
+                        <div className="bg-[#141414] border border-[#222] rounded px-2 py-1 text-xs font-bold w-12 text-center">{leverage}x</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" className="w-3.5 h-3.5 rounded bg-transparent border-gray-600 appearance-none border checked:bg-[#ff6a00] checked:border-transparent" />
+                        <span className="text-xs font-bold">Use TP/SL</span>
+                      </label>
+                      <button className="bg-[#141414] border border-[#222] rounded-full px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">
+                        Set with AI
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
+                      <div className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
+                        Day Trade
+                        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                    </div>
+
+                    {tradeError && <div className="text-red-400 text-xs font-medium text-center bg-red-400/10 border border-red-400/20 py-2 px-3 rounded-lg">{tradeError}</div>}
+                    {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center bg-[#26A17B]/10 border border-[#26A17B]/20 py-2 px-3 rounded-lg">{tradeSuccess}</div>}
+
+                    <button 
+                      onClick={handleExecuteTrade}
+                      disabled={isExecuting}
+                      className={`w-full py-3 rounded-lg font-bold text-sm transition-opacity ${isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'} ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : 'bg-red-500 text-white'}`}
+                    >
+                      {isExecuting ? 'Executing...' : `${tradeTab === 'buy' ? 'Buy' : 'Sell'} ${selectedAsset}`}
+                    </button>
                   </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" className="w-3.5 h-3.5 rounded bg-transparent border-gray-600 appearance-none border checked:bg-[#ff6a00] checked:border-transparent flex items-center justify-center relative after:content-[''] after:absolute after:w-1.5 after:h-2.5 after:border-r-2 after:border-b-2 after:border-white after:rotate-45 after:opacity-0 checked:after:opacity-100 after:top-0 after:left-1 transition-all" />
-                    <span className="text-xs font-bold">Use TP/SL</span>
-                  </label>
-                  <button className="bg-[#141414] border border-[#222] rounded-full px-3 py-1 text-[10px] font-bold text-gray-400 hover:text-white transition-colors">
-                    Set with AI
-                  </button>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
-                  <div className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
-                    Day Trade
-                    <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                  </div>
-                </div>
-
-                {tradeError && <div className="text-red-400 text-xs font-medium text-center">{tradeError}</div>}
-                {tradeSuccess && <div className="text-[#26A17B] text-xs font-medium text-center">{tradeSuccess}</div>}
-
-                <button 
-                  onClick={handleExecuteTrade}
-                  disabled={isExecuting}
-                  className={`w-full py-3 rounded-lg font-bold text-sm transition-opacity ${isExecuting ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'} ${tradeTab === 'buy' ? 'bg-[#26A17B] text-black' : tradeTab === 'sell' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}
-                >
-                  {isExecuting ? 'Executing...' : `${tradeTab === 'buy' ? 'Buy' : tradeTab === 'sell' ? 'Sell' : 'Convert'} ${selectedAsset}`}
-                </button>
-              </div>
+                )}
             </div>
             
           </div>

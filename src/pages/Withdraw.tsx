@@ -232,15 +232,15 @@ export const Withdraw = () => {
       </div>
 
       {modalView === 'method' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <h2 className="text-lg font-bold">Make a withdrawal</h2>
               <button onClick={closeModal} className="text-gray-500 hover:text-white">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <p className="text-gray-400 text-sm mb-6">
                 To make a withdrawal, choose your preferred method and click on the continue button
               </p>
@@ -264,12 +264,15 @@ export const Withdraw = () => {
                 </div>
               </div>
             </div>
-            <div className="p-4 border-t border-neutral-800">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleMethodContinue}
                 disabled={!selectedMethod}
-                className="w-full py-3 bg-[#6e6e6e] hover:bg-[#858585] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded transition-colors"
-                style={{ backgroundColor: selectedMethod ? '#ff6a00' : '#6e6e6e' }}
+                className="w-full py-3.5 text-black disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-colors text-sm shadow-md"
+                style={{ 
+                  backgroundColor: selectedMethod ? '#ff6a00' : '#444',
+                  color: selectedMethod ? '#000' : '#888'
+                }}
               >
                 Continue
               </button>
@@ -279,9 +282,9 @@ export const Withdraw = () => {
       )}
 
       {modalView === 'timeline' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-lg shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-lg shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <div className="flex items-center gap-2">
                 <button onClick={() => setModalView('method')} className="text-gray-400 hover:text-white">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -293,7 +296,7 @@ export const Withdraw = () => {
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto">
+            <div className="p-6 flex-1 overflow-y-auto custom-scrollbar">
               <p className="text-gray-400 text-sm mb-6">
                 To proceed, select your token and network, enter destination details and click on the continue button.
               </p>
@@ -398,12 +401,15 @@ export const Withdraw = () => {
               </div>
             </div>
 
-            <div className="p-4 border-t border-neutral-800">
+            <div className="shrink-0 p-4 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleTimelineContinue}
                 disabled={step < 3 || !form.toAddress}
-                className="w-full py-3 bg-[#6e6e6e] hover:bg-[#858585] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded transition-colors"
-                style={{ backgroundColor: (step === 3 && form.toAddress) ? '#ff6a00' : '#6e6e6e' }}
+                className="w-full py-3.5 text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-colors text-sm shadow-md"
+                style={{ 
+                  backgroundColor: (step === 3 && form.toAddress) ? '#ff6a00' : '#444',
+                  color: (step === 3 && form.toAddress) ? '#000' : '#888'
+                }}
               >
                 Continue
               </button>
@@ -413,9 +419,9 @@ export const Withdraw = () => {
       )}
 
       {modalView === 'confirmation' && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800">
-            <div className="flex items-center justify-between p-5 border-b border-neutral-800">
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-[#1c1c1c] rounded-xl w-full max-w-md shadow-2xl flex flex-col border border-neutral-800 max-h-[90dvh] my-auto overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between p-5 border-b border-neutral-800">
               <div className="flex items-center gap-2">
                 <button onClick={() => setModalView('timeline')} className="text-gray-400 hover:text-white">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
@@ -427,8 +433,7 @@ export const Withdraw = () => {
               </button>
             </div>
 
-            <div className="p-6 flex-1 overflow-y-auto space-y-6">
-              
+            <div className="p-6 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
               <div>
                 <label className="text-sm text-gray-400 block mb-2 font-medium">Amount to withdraw:</label>
                 <div className="relative">
@@ -475,12 +480,15 @@ export const Withdraw = () => {
               {error && <p className="text-red-400 text-sm mt-2">{error}</p>}
             </div>
 
-            <div className="p-5 border-t border-neutral-800">
+            <div className="shrink-0 p-5 border-t border-neutral-800 bg-[#1c1c1c]">
               <button 
                 onClick={handleSubmit}
                 disabled={!form.amount || submitting || Number(form.amount) <= 0 || Number(form.amount) > Number(walletBalance)}
-                className="w-full py-3.5 bg-[#6e6e6e] text-white disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg transition-colors text-[15px]"
-                style={{ backgroundColor: (form.amount && Number(form.amount) > 0 && Number(form.amount) <= Number(walletBalance)) ? '#8b8b8b' : '#6e6e6e' }}
+                className="w-full py-3.5 text-black disabled:opacity-50 disabled:cursor-not-allowed font-bold rounded-lg transition-all text-[15px] shadow-lg shadow-[#ff6a00]/20 active:scale-[0.99]"
+                style={{ 
+                  backgroundColor: (form.amount && Number(form.amount) > 0 && Number(form.amount) <= Number(walletBalance)) ? '#ff6a00' : '#444',
+                  color: (form.amount && Number(form.amount) > 0 && Number(form.amount) <= Number(walletBalance)) ? '#000000' : '#888888'
+                }}
               >
                 {submitting ? 'Submitting...' : 'Confirm Withdrawal'}
               </button>
@@ -492,12 +500,12 @@ export const Withdraw = () => {
       {modalView === 'success' && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1c1c1c] rounded-xl w-full max-w-sm shadow-2xl flex flex-col border border-neutral-800 p-8 items-center text-center">
-            <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mb-6 border border-blue-500/20">
-              <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+            <div className="w-16 h-16 bg-[#ff6a00]/10 rounded-full flex items-center justify-center mb-6 border border-[#ff6a00]/20">
+              <svg className="w-8 h-8 text-[#ff6a00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
             </div>
             <h3 className="text-xl font-bold mb-2">Withdrawal Submitted</h3>
-            <p className="text-gray-400 text-sm mb-8">Your withdrawal request is pending processing. Funds have been reserved.</p>
-            <button onClick={closeModal} className="w-full py-3 bg-[#ff6a00] hover:bg-[#ff7b1a] text-white font-bold rounded-lg transition-colors">
+            <p className="text-gray-400 text-sm mb-8">Your withdrawal is processing. We will notify you once completed.</p>
+            <button onClick={closeModal} className="w-full py-3 bg-[#ff6a00] hover:bg-[#ff7b1a] text-black font-bold rounded-lg transition-colors shadow-md">
               Close
             </button>
           </div>

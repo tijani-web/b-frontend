@@ -203,6 +203,8 @@ export const Trade = () => {
 
   const [tradeError, setTradeError] = useState('');
   const [tradeSuccess, setTradeSuccess] = useState('');
+  const [timeframe, setTimeframe] = useState<'1' | '30' | '60' | 'D'>('D');
+  const [chartExpanded, setChartExpanded] = useState(false);
 
   const navigate = useNavigate();
 
@@ -225,35 +227,89 @@ export const Trade = () => {
     } catch (e) {}
   };
 
+  const fetchPrices = async () => {
+    try {
+      const r = await fetch('/api/market/all', { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const raw = data.data;
+      if (raw) {
+        const priceMap: Record<string, number> = {};
+        if (Array.isArray(raw)) {
+          for (const item of raw) {
+            if (item?.symbol) priceMap[item.symbol] = Number(item.price) || 0;
+          }
+        } else if (typeof raw === 'object') {
+          for (const [sym, item] of Object.entries(raw)) {
+            priceMap[sym] = Number((item as any)?.price) || 0;
+          }
+        }
+        priceMap['USDT'] = 1.0;
+        priceMap['USDC'] = 1.0;
+        setPrices(prev => ({ ...prev, ...priceMap }));
+      }
+    } catch {}
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) { navigate('/login'); return; }
     setLoading(true);
-    const symbols = ALL_ASSETS.slice(0, 20).map(a => a.symbol).join(',');
     Promise.all([
       fetchWallets(token),
       fetchHistory(token),
-      fetch(`/api/market/prices?symbols=${symbols}`).then(r => r.json()).then(data => setPrices(data.data || {}))
+      fetchPrices()
     ]).finally(() => setLoading(false));
+
+    const interval = setInterval(fetchPrices, 8000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const handleExecuteTrade = async () => {
     const token = localStorage.getItem('token');
-    if (!token || !tradeAmount || Number(tradeAmount) <= 0) return;
-    let fromAsset = 'USDT', toAsset = selectedAsset;
-    if (tradeTab === 'sell') { fromAsset = selectedAsset; toAsset = 'USDT'; }
-    setIsExecuting(true); setTradeError(''); setTradeSuccess('');
+    if (!token) return;
+
+    let fromAsset = 'USDT';
+    let toAsset = selectedAsset;
+    let amount = Number(tradeAmount);
+
+    if (tradeTab === 'sell') {
+      fromAsset = selectedAsset;
+      toAsset = 'USDT';
+      amount = Number(tradeAmount);
+    } else if (tradeTab === 'convert') {
+      fromAsset = convertFrom;
+      toAsset = convertTo;
+      amount = Number(convertAmount);
+    }
+
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      setTradeError('Please enter a valid amount');
+      return;
+    }
+
+    setIsExecuting(true);
+    setTradeError('');
+    setTradeSuccess('');
     try {
       const res = await fetch('/api/trade/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fromAsset, toAsset, amount: Number(tradeAmount) })
+        body: JSON.stringify({ fromAsset, toAsset, amount })
       });
       const data = await res.json();
-      if (!res.ok) { setTradeError(data.error || 'Trade failed'); }
-      else { setTradeSuccess(`Trade executed! Received ${data.receivedAmount?.toFixed(4)} ${toAsset}`); fetchWallets(token); fetchHistory(token); }
-    } catch (e) { setTradeError('An error occurred.'); }
-    finally { setIsExecuting(false); }
+      if (!res.ok) {
+        setTradeError(data.error || 'Trade failed');
+      } else {
+        setTradeSuccess(`Trade executed! Received ${data.receivedAmount?.toFixed(4)} ${toAsset}`);
+        fetchWallets(token);
+        fetchHistory(token);
+      }
+    } catch (e) {
+      setTradeError('An error occurred during trade execution.');
+    } finally {
+      setIsExecuting(false);
+    }
   };
 
   const getTabClass = (tab: string) => {
@@ -337,9 +393,22 @@ export const Trade = () => {
             <div className="bg-[#141414] border border-[#222] rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-gray-500 text-xs font-medium">From</span>
-                <div className="flex gap-3 text-xs text-gray-500">
+                <div className="flex gap-2 text-xs text-gray-400">
                   {['25%', '50%', '75%', 'MAX'].map(p => (
-                    <button key={p} className="hover:text-[#ff6a00] transition-colors font-medium">{p}</button>
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => {
+                        const bal = Number(wallets.find(w => w.coin === convertFrom)?.balance ?? 0);
+                        if (p === '25%') setConvertAmount((bal * 0.25).toFixed(4));
+                        if (p === '50%') setConvertAmount((bal * 0.5).toFixed(4));
+                        if (p === '75%') setConvertAmount((bal * 0.75).toFixed(4));
+                        if (p === 'MAX') setConvertAmount(bal.toString());
+                      }}
+                      className="px-2 py-0.5 bg-[#1a1a1a] hover:bg-[#222] hover:text-[#ff6a00] rounded text-[11px] transition-colors font-medium"
+                    >
+                      {p}
+                    </button>
                   ))}
                 </div>
               </div>
@@ -352,6 +421,7 @@ export const Trade = () => {
                   placeholder="0.00"
                 />
                 <button
+                  type="button"
                   onClick={() => openPicker('convertFrom')}
                   className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 hover:bg-[#222] transition-colors"
                 >
@@ -363,14 +433,19 @@ export const Trade = () => {
                 </button>
               </div>
               <div className="flex justify-between mt-2">
-                <span className="text-gray-500 text-xs">~$0.00</span>
-                <span className="text-gray-500 text-xs">0 {convertFrom}</span>
+                <span className="text-gray-500 text-xs">
+                  ~${((prices[convertFrom] || 1) * (Number(convertAmount) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <span className="text-gray-400 text-xs">
+                  Bal: {Number(wallets.find(w => w.coin === convertFrom)?.balance ?? 0).toFixed(4)} {convertFrom}
+                </span>
               </div>
             </div>
 
             {/* Swap icon */}
             <div className="flex justify-center">
               <button
+                type="button"
                 onClick={() => { const tmp = convertFrom; setConvertFrom(convertTo); setConvertTo(tmp); }}
                 className="w-9 h-9 bg-[#141414] border border-[#222] rounded-full flex items-center justify-center text-[#ff6a00] hover:bg-[#ff6a00] hover:text-white transition-all"
               >
@@ -380,10 +455,15 @@ export const Trade = () => {
 
             {/* To */}
             <div className="bg-[#141414] border border-[#222] rounded-xl p-4">
-              <span className="text-gray-500 text-xs font-medium">To</span>
+              <span className="text-gray-500 text-xs font-medium">To (Estimated)</span>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-white text-2xl font-bold">0.00</span>
+                <span className="text-white text-2xl font-bold">
+                  {prices[convertTo] && prices[convertFrom] && Number(convertAmount) > 0
+                    ? (((prices[convertFrom] || 0) * Number(convertAmount)) / prices[convertTo]).toFixed(4)
+                    : '0.00'}
+                </span>
                 <button
+                  type="button"
                   onClick={() => openPicker('convertTo')}
                   className="flex items-center gap-2 bg-[#1a1a1a] border border-[#333] rounded-xl px-3 py-2 hover:bg-[#222] transition-colors"
                 >
@@ -400,14 +480,22 @@ export const Trade = () => {
                   <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                 </button>
               </div>
+              <div className="flex justify-between mt-2">
+                <span className="text-gray-500 text-xs">
+                  1 {convertFrom} ≈ {((prices[convertFrom] || 1) / (prices[convertTo] || 1)).toFixed(4)} {convertTo}
+                </span>
+                <span className="text-gray-400 text-xs">
+                  Bal: {Number(wallets.find(w => w.coin === convertTo)?.balance ?? 0).toFixed(4)} {convertTo}
+                </span>
+              </div>
             </div>
 
             <button
               onClick={handleExecuteTrade}
               disabled={isExecuting}
-              className="w-full py-3.5 bg-[#444] hover:bg-[#555] text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
+              className="w-full py-3.5 bg-[#ff6a00] hover:bg-[#ff7b1a] text-black font-bold rounded-xl text-sm transition-colors disabled:opacity-50"
             >
-              {isExecuting ? 'Converting...' : 'Convert'}
+              {isExecuting ? 'Converting...' : `Convert ${convertFrom} to ${convertTo}`}
             </button>
           </div>
         ) : (
@@ -535,6 +623,10 @@ export const Trade = () => {
           </div>
         )}
 
+        {/* Global Trade Alerts for Buy, Sell, and Convert */}
+        {tradeError && <div className="mt-4 text-red-400 text-xs font-medium text-center bg-red-400/10 border border-red-400/20 py-2.5 px-3 rounded-lg">{tradeError}</div>}
+        {tradeSuccess && <div className="mt-4 text-[#26A17B] text-xs font-medium text-center bg-[#26A17B]/10 border border-[#26A17B]/20 py-2.5 px-3 rounded-lg">{tradeSuccess}</div>}
+
         <MyTradesSection />
       </div>
     </div>
@@ -560,18 +652,41 @@ export const Trade = () => {
         </div>
 
         {/* Chart */}
-        <div className="mx-4 h-[260px] mb-4 rounded-xl overflow-hidden border border-[#222]">
-          <AdvancedRealTimeChart
-            theme="dark"
-            symbol={`BINANCE:${selectedAsset}USDT`}
-            allow_symbol_change={false}
-            save_image={false}
-            hide_side_toolbar={true}
-            hide_top_toolbar={true}
-            autosize
-            backgroundColor="#0A0A0A"
-            gridLineColor="#1a1a1a"
-          />
+        <div className="mx-4 mb-4 rounded-xl overflow-hidden border border-[#222]">
+          <div className="flex items-center justify-between px-3 py-2 bg-[#141414] border-b border-[#222]">
+            <span className="text-white text-xs font-bold">{selectedAsset}/USDT</span>
+            <div className="flex gap-1.5">
+              {[
+                { label: '1m', val: '1' },
+                { label: '30m', val: '30' },
+                { label: '1H', val: '60' },
+                { label: 'D', val: 'D' },
+              ].map(tf => (
+                <button
+                  key={tf.val}
+                  type="button"
+                  onClick={() => setTimeframe(tf.val as any)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors ${timeframe === tf.val ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+                >
+                  {tf.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="h-[340px]">
+            <AdvancedRealTimeChart
+              theme="dark"
+              symbol={`BINANCE:${selectedAsset}USDT`}
+              interval={timeframe}
+              allow_symbol_change={false}
+              save_image={false}
+              hide_side_toolbar={true}
+              hide_top_toolbar={true}
+              autosize
+              backgroundColor="#0A0A0A"
+              gridLineColor="#1a1a1a"
+            />
+          </div>
         </div>
 
         {/* Trade Panel */}
@@ -586,24 +701,56 @@ export const Trade = () => {
         <Header />
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-[calc(100vh-64px)]">
           {/* Left: Chart + My Trades */}
-          <div className="flex flex-col border-r border-[#1a1a1a]">
-            <div className="flex items-center gap-4 px-4 py-3 border-b border-[#1a1a1a]">
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getAssetMeta(selectedAsset).color }}>
-                  {getAssetMeta(selectedAsset).icon}
+          <div className={`flex flex-col border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getAssetMeta(selectedAsset).color }}>
+                    {getAssetMeta(selectedAsset).icon}
+                  </div>
+                  <span className="font-bold text-sm">{selectedAsset}/USDT</span>
                 </div>
-                <span className="font-bold text-sm">{selectedAsset}/USDT</span>
+                {/* Timeframes: 1m, 30m, 1H, D */}
+                <div className="text-gray-500 text-xs flex gap-1.5 bg-[#141414] p-1 rounded-lg border border-[#222]">
+                  {[
+                    { label: '1m', val: '1' },
+                    { label: '30m', val: '30' },
+                    { label: '1H', val: '60' },
+                    { label: 'D', val: 'D' },
+                  ].map(tf => (
+                    <button
+                      key={tf.val}
+                      type="button"
+                      onClick={() => setTimeframe(tf.val as any)}
+                      className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                        timeframe === tf.val ? 'bg-[#ff6a00] text-black font-bold' : 'hover:text-white'
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="text-gray-500 text-xs flex gap-3">
-                {['1m', '30m', '1H', 'D'].map(t => (
-                  <span key={t} className={`cursor-pointer hover:text-white transition-colors ${t === 'D' ? 'text-[#ff6a00] font-medium' : ''}`}>{t}</span>
-                ))}
-              </div>
+              <button
+                type="button"
+                onClick={() => setChartExpanded(!chartExpanded)}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-white bg-[#141414] border border-[#222] px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {chartExpanded ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  )}
+                </svg>
+                {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
+              </button>
             </div>
-            <div className="flex-1 relative min-h-[500px]">
+            <div className="flex-1 relative min-h-[520px]">
               <AdvancedRealTimeChart
                 theme="dark"
                 symbol={`BINANCE:${selectedAsset}USDT`}
+                interval={timeframe}
                 allow_symbol_change={true}
                 save_image={false}
                 hide_side_toolbar={false}
@@ -612,9 +759,11 @@ export const Trade = () => {
                 gridLineColor="#1a1a1a"
               />
             </div>
-            <div className="p-6 border-t border-[#1a1a1a]">
-              <MyTradesSection />
-            </div>
+            {!chartExpanded && (
+              <div className="p-6 border-t border-[#1a1a1a]">
+                <MyTradesSection />
+              </div>
+            )}
           </div>
 
           {/* Right: Trade Panel */}
