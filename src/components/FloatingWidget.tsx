@@ -71,7 +71,7 @@ export const FloatingWidget = () => {
                   </button>
                   <button 
                     onClick={() => setActiveTab('conversation')}
-                    className={`flex-1 flex flex-col items-center py-2 border-b-[3px] transition-colors ${activeTab === 'conversation' ? 'border-[#ff8c00] text-[#ff8c00]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+                    className={`flex-1 flex flex-col items-center py-2 border-b-[3px] transition-colors ${(activeTab as string) === 'conversation' ? 'border-[#ff8c00] text-[#ff8c00]' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
                   >
                     <svg className="w-6 h-6 mb-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />

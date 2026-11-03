@@ -23,6 +23,8 @@ interface TradeRecord {
   usdValue: number;
   status: string;
   createdAt: string;
+  category?: string;
+  adminNote?: string;
 }
 
 const ASSET_META: Record<string, { name: string; color: string; icon: string }> = {
@@ -34,6 +36,8 @@ const ASSET_META: Record<string, { name: string; color: string; icon: string }> 
   BNB:  { name: 'BNB',      color: '#F3BA2F', icon: 'B' },
   AAPL: { name: 'Apple',    color: '#ffffff', icon: '' },
 };
+
+const ALL_CONVERT_COINS = ['BTC', 'ETH', 'USDT', 'SOL', 'BNB', 'USDC', 'XRP', 'ADA', 'DOGE', 'AAPL'];
 
 const MOBILE_TABS = ['Crypto', 'DeFi', 'Mining', 'History'];
 
@@ -75,6 +79,8 @@ export const Dashboard = () => {
   const [convertFrom, setConvertFrom] = useState('BTC');
   const [convertTo, setConvertTo] = useState('USDT');
   const [convertAmount, setConvertAmount] = useState('0.01');
+  const [showFromPicker, setShowFromPicker] = useState(false);
+  const [showToPicker, setShowToPicker] = useState(false);
 
   const navigate = useNavigate();
 
@@ -566,7 +572,10 @@ export const Dashboard = () => {
                   </button>
                 </div>
               </div>
-              <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'h-[350px]'}>
+              <div 
+                className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
+                style={{ height: chartExpanded ? '100vh' : '520px', minHeight: chartExpanded ? '100vh' : '520px' }}
+              >
                 <AdvancedRealTimeChart 
                   key={`mobile-${selectedAsset}-${timeframe}`}
                   theme="dark"
@@ -575,7 +584,11 @@ export const Dashboard = () => {
                   allow_symbol_change={true}
                   save_image={false}
                   hide_side_toolbar={true}
-                  autosize
+                  autosize={chartExpanded}
+                  width="100%"
+                  height={chartExpanded ? '100%' : 520}
+                  backgroundColor="#0A0A0A"
+                  copyrightStyles={{ parent: { display: 'none' } }}
                 />
                 {chartExpanded && (
                   <button
@@ -633,14 +646,45 @@ export const Dashboard = () => {
                     </div>
                     <div className="flex items-center gap-2">
                       <input type="number" value={convertAmount} onChange={e => setConvertAmount(e.target.value)}
-                        className="bg-transparent text-white text-xl font-bold flex-1 outline-none placeholder-gray-600" placeholder="0.00" />
-                      <select
-                        value={convertFrom}
-                        onChange={e => setConvertFrom(e.target.value)}
-                        className="bg-[#1a1a1a] border border-[#333] text-white text-xs font-bold rounded-lg px-2 py-1.5 outline-none"
-                      >
-                        {wallets.map(w => <option key={w.coin} value={w.coin}>{w.coin}</option>)}
-                      </select>
+                        className="bg-transparent text-white text-xl font-bold flex-1 outline-none placeholder-gray-600 min-w-0" placeholder="0.00" />
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => { setShowFromPicker(!showFromPicker); setShowToPicker(false); }}
+                          className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#252525] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-colors"
+                        >
+                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-black" style={{ backgroundColor: ASSET_META[convertFrom]?.color || '#F7931A' }}>
+                            {ASSET_META[convertFrom]?.icon || convertFrom[0]}
+                          </span>
+                          <span>{convertFrom}</span>
+                          <svg className={`w-3 h-3 text-gray-400 transition-transform ${showFromPicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {showFromPicker && (
+                          <div className="absolute right-0 top-full mt-1.5 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl py-1 z-40 w-36 max-h-48 overflow-y-auto">
+                            {Array.from(new Set([...ALL_CONVERT_COINS, ...wallets.map(w => w.coin)])).map(coin => (
+                              <button
+                                key={coin}
+                                type="button"
+                                onClick={() => {
+                                  setConvertFrom(coin);
+                                  setShowFromPicker(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-[#262626] transition-colors flex items-center justify-between ${
+                                  convertFrom === coin ? 'text-[#ff6a00] bg-[#ff6a00]/10' : 'text-gray-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold text-black" style={{ backgroundColor: ASSET_META[coin]?.color || '#888' }}>
+                                    {ASSET_META[coin]?.icon || coin[0]}
+                                  </span>
+                                  <span>{coin}</span>
+                                </div>
+                                {convertFrom === coin && <span className="text-[10px] font-bold text-[#ff6a00]">✓</span>}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="text-gray-500 text-[10px] mt-1">
                       Bal: {Number(wallets.find(w => w.coin === convertFrom)?.balance ?? 0).toFixed(6)} {convertFrom}
@@ -659,18 +703,49 @@ export const Dashboard = () => {
                   <div className="bg-[#0A0A0A] border border-[#222] rounded-xl p-3">
                     <span className="text-gray-500 text-[10px] font-medium">To (Estimated)</span>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-white text-xl font-bold flex-1">
+                      <span className="text-white text-xl font-bold flex-1 truncate">
                         {prices[convertTo] && prices[convertFrom] && Number(convertAmount) > 0
                           ? (((prices[convertFrom] || 0) * Number(convertAmount)) / prices[convertTo]).toFixed(6)
                           : '0.00'}
                       </span>
-                      <select
-                        value={convertTo}
-                        onChange={e => setConvertTo(e.target.value)}
-                        className="bg-[#1a1a1a] border border-[#333] text-white text-xs font-bold rounded-lg px-2 py-1.5 outline-none"
-                      >
-                        {['USDT','BTC','ETH','SOL','BNB','USDC'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
+                      <div className="relative shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => { setShowToPicker(!showToPicker); setShowFromPicker(false); }}
+                          className="flex items-center gap-1.5 bg-[#1a1a1a] hover:bg-[#252525] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs font-bold text-white transition-colors"
+                        >
+                          <span className="w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-black" style={{ backgroundColor: ASSET_META[convertTo]?.color || '#26A17B' }}>
+                            {ASSET_META[convertTo]?.icon || convertTo[0]}
+                          </span>
+                          <span>{convertTo}</span>
+                          <svg className={`w-3 h-3 text-gray-400 transition-transform ${showToPicker ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        {showToPicker && (
+                          <div className="absolute right-0 top-full mt-1.5 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl py-1 z-40 w-36 max-h-48 overflow-y-auto">
+                            {Array.from(new Set([...ALL_CONVERT_COINS, ...wallets.map(w => w.coin)])).map(coin => (
+                              <button
+                                key={coin}
+                                type="button"
+                                onClick={() => {
+                                  setConvertTo(coin);
+                                  setShowToPicker(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-[#262626] transition-colors flex items-center justify-between ${
+                                  convertTo === coin ? 'text-[#ff6a00] bg-[#ff6a00]/10' : 'text-gray-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5">
+                                  <span className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[9px] font-bold text-black" style={{ backgroundColor: ASSET_META[coin]?.color || '#888' }}>
+                                    {ASSET_META[coin]?.icon || coin[0]}
+                                  </span>
+                                  <span>{coin}</span>
+                                </div>
+                                {convertTo === coin && <span className="text-[10px] font-bold text-[#ff6a00]">✓</span>}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="text-gray-500 text-[10px] mt-1">
                       1 {convertFrom} ≈ {((prices[convertFrom] || 1) / (prices[convertTo] || 1)).toFixed(6)} {convertTo}
@@ -955,7 +1030,7 @@ export const Dashboard = () => {
                   {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
                 </button>
               </div>
-              <div className="flex-1 relative w-full h-full min-h-[460px]">
+              <div className="flex-1 relative w-full h-full min-h-[640px]" style={{ minHeight: '640px', height: '640px' }}>
                 <AdvancedRealTimeChart 
                   key={`desktop-${selectedAsset}-${timeframe}`}
                   theme="dark"
@@ -965,29 +1040,40 @@ export const Dashboard = () => {
                   save_image={false}
                   hide_side_toolbar={false}
                   autosize
+                  width="100%"
+                  height="100%"
                   backgroundColor="#0A0A0A"
-                  gridLineColor="#1a1a1a"
+                  copyrightStyles={{ parent: { display: 'none' } }}
                 />
               </div>
 
-              {/* Live Asset Price Ticker directly under Desktop Chart (Owner Item #6 / B2) */}
-              <div className="flex items-center justify-between px-5 py-3 bg-[#111] border-t border-[#1a1a1a] text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#26A17B] animate-pulse shrink-0" />
-                    <span className="font-bold text-white text-sm">{selectedAsset}/USDT Live</span>
+              {/* Live Asset Price Ticker directly under Desktop Chart */}
+              <div className="flex flex-wrap items-center justify-between gap-y-2 gap-x-4 px-4 py-2.5 bg-[#111] border-t border-[#1a1a1a] text-xs">
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#26A17B] animate-pulse shrink-0" />
+                    <span className="font-bold text-white text-xs">{selectedAsset}/USDT Live</span>
                   </div>
-                  <span className="font-mono font-bold text-[#26A17B] text-base">
+                  <span className="font-mono font-bold text-[#26A17B] text-sm">
                     ${(prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20">
-                    +2.34% 24h
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20">
+                    +2.34%
                   </span>
                 </div>
-                <div className="flex items-center gap-5 text-gray-400 text-xs font-mono">
-                  <span>24h High: <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
-                  <span>24h Low: <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 0.975).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
-                  <span>24h Volume: <span className="text-white font-medium">1.48B USDT</span></span>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-400 text-xs font-mono">
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">24h High:</span>
+                    <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">24h Low:</span>
+                    <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 0.975).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-gray-500">24h Vol:</span>
+                    <span className="text-white font-medium">1.48B USDT</span>
+                  </div>
                 </div>
               </div>
             </div>

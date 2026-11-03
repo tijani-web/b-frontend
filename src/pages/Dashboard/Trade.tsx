@@ -215,6 +215,8 @@ export const Trade = () => {
   const [leverage, setLeverage] = useState(5);
   const [duration, setDuration] = useState('2 minutes');
   const [showDurationMenu, setShowDurationMenu] = useState(false);
+  const [tradeType, setTradeType] = useState('Crypto');
+  const [showTradeTypeMenu, setShowTradeTypeMenu] = useState(false);
   const [useTPSL, setUseTPSL] = useState(false);
 
   // Convert state
@@ -672,13 +674,41 @@ export const Trade = () => {
         ) : (
           /* ── BUY / SELL UI ── */
           <div className="space-y-4">
-            {/* Trade Type */}
-            <div>
+            {/* Trade Type Dropdown */}
+            <div className="relative">
               <label className="block text-gray-500 text-xs font-medium mb-1.5">Trade type:</label>
-              <div className="bg-[#141414] border border-[#222] rounded-xl px-3 py-2.5 flex justify-between items-center cursor-pointer">
-                <span className="text-white text-sm font-medium">Crypto</span>
-                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+              <div 
+                onClick={() => setShowTradeTypeMenu(!showTradeTypeMenu)}
+                className="bg-[#141414] border border-[#222] hover:border-[#333] rounded-xl px-3 py-2.5 flex justify-between items-center cursor-pointer transition-colors"
+              >
+                <span className="text-white text-sm font-medium">{tradeType}</span>
+                <svg className={`w-4 h-4 text-gray-500 transition-transform ${showTradeTypeMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
               </div>
+
+              {showTradeTypeMenu && (
+                <div className="absolute left-0 right-0 top-full mt-1.5 bg-[#1a1a1a] border border-[#333] rounded-xl shadow-2xl py-1.5 z-30">
+                  {['Crypto', 'Forex', 'Commodities', 'Stocks'].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => {
+                        setTradeType(type);
+                        setShowTradeTypeMenu(false);
+                        if (type === 'Crypto') setSelectedAsset('BTC');
+                        else if (type === 'Forex') setSelectedAsset('EUR');
+                        else if (type === 'Commodities') setSelectedAsset('GOLD');
+                        else if (type === 'Stocks') setSelectedAsset('AAPL');
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs font-semibold hover:bg-[#252525] transition-colors flex items-center justify-between ${
+                        tradeType === type ? 'text-[#ff6a00] bg-[#ff6a00]/10' : 'text-gray-300'
+                      }`}
+                    >
+                      <span>{type}</span>
+                      {tradeType === type && <span className="text-xs font-bold text-[#ff6a00]">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Amount + Asset picker trigger */}
@@ -824,7 +854,7 @@ export const Trade = () => {
         <div className="mx-4 mb-4 rounded-xl overflow-hidden border border-[#222]">
           <div className="flex items-center justify-between px-3 py-2 bg-[#141414] border-b border-[#222]">
             <span className="text-white text-xs font-bold">{selectedAsset}/USDT</span>
-            <div className="flex gap-1.5">
+            <div className="flex items-center gap-1.5">
               {[
                 { label: '1m', val: '1' },
                 { label: '30m', val: '30' },
@@ -840,10 +870,28 @@ export const Trade = () => {
                   {tf.label}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setChartExpanded(!chartExpanded)}
+                className="ml-1 p-1 rounded text-gray-400 hover:text-white bg-[#1a1a1a] transition-colors"
+                title={chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {chartExpanded ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                  )}
+                </svg>
+              </button>
             </div>
           </div>
-          <div className="h-[500px]">
+          <div 
+            className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
+            style={{ height: chartExpanded ? '100vh' : '520px', minHeight: chartExpanded ? '100vh' : '520px' }}
+          >
             <AdvancedRealTimeChart
+              key={`mobile-trade-${selectedAsset}-${timeframe}`}
               theme="dark"
               symbol={getTradingViewSymbol(selectedAsset)}
               interval={timeframe}
@@ -851,10 +899,21 @@ export const Trade = () => {
               save_image={false}
               hide_side_toolbar={true}
               hide_top_toolbar={true}
-              autosize
+              autosize={chartExpanded}
+              width="100%"
+              height={chartExpanded ? '100%' : 520}
               backgroundColor="#0A0A0A"
-              gridLineColor="#1a1a1a"
+              copyrightStyles={{ parent: { display: 'none' } }}
             />
+            {chartExpanded && (
+              <button
+                type="button"
+                onClick={() => setChartExpanded(false)}
+                className="absolute top-4 right-4 z-[60] bg-black/80 hover:bg-black text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-white/20"
+              >
+                Close Fullscreen
+              </button>
+            )}
           </div>
         </div>
 
@@ -920,8 +979,9 @@ export const Trade = () => {
                 {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
               </button>
             </div>
-            <div className="flex-1 relative min-h-[640px]">
+            <div className="flex-1 relative min-h-[640px]" style={{ minHeight: '640px', height: '640px' }}>
               <AdvancedRealTimeChart
+                key={`desktop-trade-${selectedAsset}-${timeframe}`}
                 theme="dark"
                 symbol={getTradingViewSymbol(selectedAsset)}
                 interval={timeframe}
@@ -929,8 +989,10 @@ export const Trade = () => {
                 save_image={false}
                 hide_side_toolbar={false}
                 autosize
+                width="100%"
+                height="100%"
                 backgroundColor="#0A0A0A"
-                gridLineColor="#1a1a1a"
+                copyrightStyles={{ parent: { display: 'none' } }}
               />
             </div>
             {!chartExpanded && (

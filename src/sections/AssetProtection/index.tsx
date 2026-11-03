@@ -20,10 +20,10 @@ export const AssetProtection = () => {
             />
             <video
               poster="https://c.animaapp.com/ms9b4yl7eEtjhI/assets/main.webp"
-              autoplay=""
-              muted=""
-              playsInline=""
-              loop=""
+              autoPlay
+              muted
+              playsInline
+              loop
               preload="auto"
               className="box-border caret-transparent h-full max-w-full outline-[3px] pointer-events-none absolute no-underline align-baseline w-full z-[1] inset-0"
             >
