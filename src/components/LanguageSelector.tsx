@@ -45,12 +45,17 @@ export const LanguageSelector = () => {
     document.cookie = `googtrans=/en/${lang.code}; path=/`;
     document.cookie = `googtrans=/en/${lang.code}; domain=${window.location.hostname}; path=/`;
     
-    // Reload page to apply translation
-    window.location.reload();
+    const select = document.querySelector('select.goog-te-combo') as HTMLSelectElement | null;
+    if (select) {
+      select.value = lang.code;
+      select.dispatchEvent(new Event('change'));
+    } else {
+      window.location.reload();
+    }
   };
 
   return (
-    <div className="fixed z-[999999] left-6 bottom-6 font-inter">
+    <div className="fixed z-[9999] left-4 bottom-20 md:left-6 md:bottom-6 font-inter">
       <div className="relative">
         {isOpen && (
           <div className="absolute bottom-full left-0 mb-3 w-64 bg-[#141414] rounded-xl shadow-2xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-200">

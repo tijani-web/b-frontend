@@ -13,6 +13,7 @@ export const Mining = () => {
   const [successMsg, setSuccessMsg] = useState('');
   
   const [activeContracts, setActiveContracts] = useState<any[]>([]);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const fetchActiveContracts = async () => {
     try {
@@ -26,6 +27,37 @@ export const Mining = () => {
         setActiveContracts(mining);
       }
     } catch (e) {}
+  };
+
+  const handleCancelContract = async (id: string) => {
+    if (!confirm('Are you sure you want to cancel this mining contract? Invested funds will be refunded to your wallet.')) {
+      return;
+    }
+    setCancellingId(id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/trade/mine/${id}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMsg('Mining contract cancelled and refunded successfully!');
+        fetchActiveContracts();
+        setTimeout(() => setSuccessMsg(''), 5000);
+      } else {
+        setError(data.error || 'Failed to cancel contract');
+        setTimeout(() => setError(''), 5000);
+      }
+    } catch (e: any) {
+      setError('Error cancelling contract');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   useEffect(() => {
@@ -126,7 +158,8 @@ export const Mining = () => {
                       <th className="px-6 py-4">Purchase Date</th>
                       <th className="px-6 py-4">Contract Value (USD)</th>
                       <th className="px-6 py-4">Paid With</th>
-                      <th className="px-6 py-4 text-right">Status</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1a1a1a]">
@@ -141,8 +174,25 @@ export const Mining = () => {
                         <td className="px-6 py-4 whitespace-nowrap font-bold">
                           {contract.asset}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {contract.status === 'CANCELLED' ? (
+                            <span className="bg-gray-500/10 text-gray-400 border border-gray-500/20 px-3 py-1 rounded-full text-xs font-bold">Cancelled</span>
+                          ) : (
+                            <span className="bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20 px-3 py-1 rounded-full text-xs font-bold">Mining Active</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <span className="bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20 px-3 py-1 rounded-full text-xs font-bold">Mining Active</span>
+                          {contract.status !== 'CANCELLED' ? (
+                            <button
+                              onClick={() => handleCancelContract(contract.id)}
+                              disabled={cancellingId === contract.id}
+                              className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                            >
+                              {cancellingId === contract.id ? 'Cancelling...' : 'Cancel'}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-gray-500">—</span>
+                          )}
                         </td>
                       </tr>
                     ))}

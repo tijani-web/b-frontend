@@ -68,6 +68,37 @@ export const Stake = () => {
     fetchStakes();
   }, []);
 
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  const handleCancelStake = async (id: string) => {
+    if (!confirm('Are you sure you want to cancel this stake? Your staked funds will be refunded to your wallet.')) {
+      return;
+    }
+    setCancellingId(id);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/stake/cancel/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setToastMessage({ title: 'Stake cancelled and refunded successfully!', type: 'success' });
+        fetchStakes();
+      } else {
+        setToastMessage({ title: data.error || 'Failed to cancel stake', type: 'error' });
+      }
+    } catch (e: any) {
+      setToastMessage({ title: 'Error cancelling stake', type: 'error' });
+    } finally {
+      setCancellingId(null);
+      setTimeout(() => setToastMessage(null), 3500);
+    }
+  };
+
   const handleStake = async () => {
     const numAmount = parseFloat(stakeAmount);
     if (!stakeAmount || isNaN(numAmount) || numAmount <= 0) {
@@ -278,6 +309,7 @@ export const Stake = () => {
                         <th className="p-4 text-xs font-semibold text-gray-400">Amount Staked</th>
                         <th className="p-4 text-xs font-semibold text-gray-400">Status</th>
                         <th className="p-4 text-xs font-semibold text-gray-400">Start Date</th>
+                        <th className="p-4 text-xs font-semibold text-gray-400 text-right">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -303,6 +335,19 @@ export const Stake = () => {
                           </td>
                           <td className="p-4 text-sm text-gray-400">
                             {new Date(s.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                          </td>
+                          <td className="p-4 text-sm text-right">
+                            {s.status === 'ACTIVE' ? (
+                              <button
+                                onClick={() => handleCancelStake(s.id)}
+                                disabled={cancellingId === s.id}
+                                className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-red-500/30 rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                              >
+                                {cancellingId === s.id ? 'Cancelling...' : 'Cancel'}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-500">—</span>
+                            )}
                           </td>
                         </tr>
                       ))}

@@ -197,23 +197,102 @@ const COINGECKO_IDS = ALL_MARKET_ASSETS.filter(a => a.cgId).map(a => a.cgId!).jo
 const FILTER_TABS = ['All assets', 'Crypto', 'Stocks', 'Fiat assets', 'Commodities'] as const;
 type FilterTab = typeof FILTER_TABS[number];
 
-// Static fallback prices so the page doesn't show $0
+// Comprehensive static fallback prices so no asset ever shows "—"
 const FALLBACK_PRICES: Record<string, { price: number; change24h: number }> = {
+  // ── Crypto
   BTC: { price: 85367, change24h: 1.23 }, ETH: { price: 3241, change24h: 0.87 },
   BNB: { price: 412, change24h: -0.54 }, SOL: { price: 148, change24h: 2.14 },
   XRP: { price: 0.52, change24h: -1.02 }, ADA: { price: 0.48, change24h: 0.65 },
-  DOGE: { price: 0.13, change24h: 3.12 }, AVAX: { price: 36, change24h: -0.88 },
-  MATIC: { price: 0.87, change24h: 1.45 }, DOT: { price: 7.2, change24h: -0.33 },
-  SHIB: { price: 0.0000182, change24h: 5.44 }, LINK: { price: 14.3, change24h: 0.92 },
-  LTC: { price: 88, change24h: -1.11 }, UNI: { price: 8.7, change24h: 2.05 },
-  ATOM: { price: 9.1, change24h: -0.72 }, TRX: { price: 0.13, change24h: 0.44 },
-  TON: { price: 5.9, change24h: 1.87 }, PEPE: { price: 0.0000122, change24h: 8.33 },
+  AVAX: { price: 36, change24h: -0.88 }, DOGE: { price: 0.13, change24h: 3.12 },
+  DOT: { price: 7.2, change24h: -0.33 }, MATIC: { price: 0.87, change24h: 1.45 },
+  SHIB: { price: 0.0000182, change24h: 5.44 }, LTC: { price: 88, change24h: -1.11 },
+  LINK: { price: 14.3, change24h: 0.92 }, UNI: { price: 8.7, change24h: 2.05 },
+  ATOM: { price: 9.1, change24h: -0.72 }, XLM: { price: 0.11, change24h: 0.35 },
+  ALGO: { price: 0.18, change24h: -0.45 }, AAVE: { price: 154, change24h: 2.80 },
   USDT: { price: 1.0, change24h: 0 }, USDC: { price: 1.0, change24h: 0 },
-  AAPL: { price: 175.3, change24h: 0.45 }, MSFT: { price: 375.2, change24h: 0.72 },
-  GOOGL: { price: 138.4, change24h: -0.31 }, AMZN: { price: 185.2, change24h: 1.02 },
-  TSLA: { price: 248.5, change24h: -2.14 }, NVDA: { price: 486.3, change24h: 3.44 },
-  META: { price: 485.1, change24h: 0.89 }, GOLD: { price: 2024, change24h: 0.32 },
-  SILVER: { price: 24.5, change24h: -0.44 }, OIL: { price: 78.3, change24h: -1.22 },
+  DAI: { price: 1.0, change24h: 0 }, BCH: { price: 345, change24h: 1.15 },
+  ETC: { price: 26.5, change24h: -0.80 }, FIL: { price: 5.8, change24h: 0.40 },
+  ICP: { price: 11.2, change24h: -1.25 }, VET: { price: 0.032, change24h: 0.50 },
+  HBAR: { price: 0.078, change24h: 1.10 }, EOS: { price: 0.75, change24h: -0.20 },
+  XMR: { price: 162, change24h: 0.85 }, NEAR: { price: 5.40, change24h: 2.10 },
+  SAND: { price: 0.42, change24h: -0.90 }, MANA: { price: 0.45, change24h: 0.15 },
+  AXS: { price: 7.8, change24h: 1.40 }, CRO: { price: 0.125, change24h: 1.80 },
+  FTM: { price: 0.68, change24h: 3.20 }, EGLD: { price: 38.5, change24h: -0.40 },
+  GRT: { price: 0.28, change24h: 1.95 }, FLOW: { price: 0.82, change24h: -0.15 },
+  THETA: { price: 1.85, change24h: 0.65 }, KSM: { price: 28.4, change24h: -1.10 },
+  ONE: { price: 0.018, change24h: 0.80 }, ZEC: { price: 34.5, change24h: -0.50 },
+  DASH: { price: 31.2, change24h: 0.25 }, XTZ: { price: 1.05, change24h: -0.40 },
+  QNT: { price: 98.4, change24h: 1.10 }, CAKE: { price: 2.65, change24h: 0.90 },
+  SUSHI: { price: 1.15, change24h: 1.40 }, COMP: { price: 54.2, change24h: -0.30 },
+  MKR: { price: 2450, change24h: 2.15 }, SNX: { price: 2.85, change24h: 0.70 },
+  CRV: { price: 0.48, change24h: -0.65 }, LDO: { price: 1.95, change24h: 1.80 },
+  OP: { price: 2.35, change24h: 2.45 }, ARB: { price: 1.15, change24h: 1.20 },
+  SUI: { price: 2.15, change24h: 4.80 }, APT: { price: 9.80, change24h: 3.10 },
+  INJ: { price: 28.5, change24h: 2.90 }, TRX: { price: 0.13, change24h: 0.44 },
+  TON: { price: 5.9, change24h: 1.87 }, PEPE: { price: 0.0000122, change24h: 8.33 },
+  BONK: { price: 0.0000245, change24h: 6.20 }, WIF: { price: 2.85, change24h: 7.40 },
+  RNDR: { price: 8.45, change24h: 3.80 }, FET: { price: 1.95, change24h: 2.40 },
+  WLD: { price: 4.85, change24h: -1.20 }, PYTH: { price: 0.52, change24h: 1.60 },
+  JTO: { price: 3.15, change24h: 2.80 }, STX: { price: 2.25, change24h: 1.40 },
+  IMX: { price: 2.10, change24h: 0.80 }, GNO: { price: 326.50, change24h: 0.40 },
+  RPL: { price: 24.80, change24h: -1.20 }, DYDX: { price: 2.45, change24h: 0.90 },
+  GMX: { price: 34.50, change24h: 1.10 }, BAL: { price: 3.85, change24h: 1.40 },
+  YFI: { price: 7180.00, change24h: 2.60 }, '1INCH': { price: 0.42, change24h: 0.80 },
+  CHZ: { price: 0.095, change24h: -0.40 }, HOT: { price: 0.00224, change24h: 0.90 },
+  ZIL: { price: 0.0242, change24h: -0.50 }, ENJ: { price: 0.324, change24h: 2.10 },
+  BAT: { price: 0.245, change24h: 0.60 },
+
+  // ── Stocks
+  AAPL: { price: 185.50, change24h: 0.45 }, MSFT: { price: 422.30, change24h: 0.72 },
+  GOOGL: { price: 176.40, change24h: -0.31 }, AMZN: { price: 189.60, change24h: 1.02 },
+  TSLA: { price: 254.80, change24h: -2.14 }, NVDA: { price: 128.50, change24h: 3.44 },
+  META: { price: 512.40, change24h: 0.89 }, NFLX: { price: 648.20, change24h: 1.45 },
+  AMD: { price: 164.20, change24h: 2.10 }, INTC: { price: 31.80, change24h: -0.85 },
+  CRM: { price: 295.40, change24h: 0.40 }, ORCL: { price: 142.80, change24h: 0.75 },
+  IBM: { price: 194.50, change24h: -0.15 }, CSCO: { price: 51.90, change24h: 0.30 },
+  ADBE: { price: 538.20, change24h: -0.65 }, PYPL: { price: 65.40, change24h: 1.80 },
+  SQ: { price: 68.90, change24h: 2.30 }, COIN: { price: 236.40, change24h: 4.10 },
+  HOOD: { price: 22.80, change24h: 3.50 }, JPM: { price: 204.80, change24h: 0.55 },
+  GS: { price: 466.20, change24h: 0.80 }, BAC: { price: 39.70, change24h: 0.40 },
+  V: { price: 278.60, change24h: 0.25 }, MA: { price: 462.40, change24h: 0.35 },
+  DIS: { price: 104.50, change24h: -0.45 }, SPOT: { price: 326.80, change24h: 2.15 },
+  SNAP: { price: 15.40, change24h: -1.20 }, TWTR: { price: 54.20, change24h: 0.00 },
+  UBER: { price: 73.20, change24h: 1.65 }, LYFT: { price: 14.90, change24h: 0.90 },
+  ABNB: { price: 149.20, change24h: -0.75 }, SHOP: { price: 68.70, change24h: 2.40 },
+  ZM: { price: 65.80, change24h: 0.15 }, PLTR: { price: 28.60, change24h: 3.80 },
+  NKE: { price: 95.80, change24h: -0.50 }, SBUX: { price: 82.70, change24h: 0.60 },
+  MCD: { price: 265.40, change24h: 0.30 }, KO: { price: 63.20, change24h: 0.10 },
+  PEP: { price: 168.90, change24h: -0.20 }, WMT: { price: 68.80, change24h: 0.85 },
+  TGT: { price: 146.80, change24h: 1.15 }, AMGN: { price: 316.20, change24h: 0.45 },
+  JNJ: { price: 153.40, change24h: -0.30 }, PFE: { price: 29.10, change24h: 0.20 },
+  MRNA: { price: 126.40, change24h: -2.10 }, BABA: { price: 78.60, change24h: 1.70 },
+  TSM: { price: 173.20, change24h: 2.80 }, F: { price: 12.30, change24h: -0.60 },
+  GM: { price: 47.10, change24h: 0.40 }, BA: { price: 183.40, change24h: -1.30 },
+  XOM: { price: 119.20, change24h: 0.80 }, CVX: { price: 157.10, change24h: 0.60 },
+
+  // ── Fiat
+  EUR: { price: 1.0865, change24h: 0.12 }, GBP: { price: 1.2940, change24h: -0.18 },
+  JPY: { price: 0.00648, change24h: -0.45 }, CNY: { price: 0.1382, change24h: 0.05 },
+  CAD: { price: 0.7340, change24h: 0.08 }, AUD: { price: 0.6645, change24h: 0.22 },
+  CHF: { price: 1.1140, change24h: 0.15 }, SGD: { price: 0.7550, change24h: 0.10 },
+  HKD: { price: 0.1281, change24h: 0.02 }, NZD: { price: 0.6120, change24h: 0.18 },
+  INR: { price: 0.01202, change24h: -0.05 }, BRL: { price: 0.1845, change24h: -0.30 },
+  MXN: { price: 0.0542, change24h: -0.20 }, NGN: { price: 0.00065, change24h: 0.10 },
+  ZAR: { price: 0.0552, change24h: 0.40 }, AED: { price: 0.2723, change24h: 0.00 },
+  SAR: { price: 0.2665, change24h: 0.00 }, TRY: { price: 0.0305, change24h: -0.80 },
+  KRW: { price: 0.000732, change24h: -0.15 }, SEK: { price: 0.0965, change24h: 0.25 },
+
+  // ── Commodities
+  GOLD: { price: 2415.80, change24h: 0.48 }, SILVER: { price: 31.40, change24h: -0.35 },
+  OIL: { price: 79.60, change24h: -1.15 }, BRENT: { price: 83.80, change24h: -0.95 },
+  GAS: { price: 2.86, change24h: 2.40 }, WHEAT: { price: 574.50, change24h: -0.60 },
+  CORN: { price: 439.20, change24h: 0.45 }, COFFE: { price: 228.60, change24h: 1.80 },
+  COCOA: { price: 7890.00, change24h: 3.10 }, PLAT: { price: 986.50, change24h: 0.20 },
+  PALL: { price: 981.20, change24h: -0.80 }, COPP: { price: 4.46, change24h: 1.25 },
+  ALU: { price: 2465.00, change24h: 0.50 }, NICKEL: { price: 17350.0, change24h: -1.10 },
+  ZINC: { price: 2840.00, change24h: 0.35 }, SUGAR: { price: 19.45, change24h: -0.40 },
+  COTTON: { price: 77.10, change24h: 0.70 }, SOYBN: { price: 1184.00, change24h: -0.25 },
+  LIVEC: { price: 184.80, change24h: 0.15 }, LEAN: { price: 92.60, change24h: 0.55 },
 };
 
 export const Markets = () => {
@@ -261,8 +340,28 @@ export const Markets = () => {
       .finally(() => setLoading(false));
 
     fetchLivePrices();
-    const interval = setInterval(fetchLivePrices, 8_000); // refresh every 8s for live real-time feel
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchLivePrices, 6_000); // refresh every 6s
+
+    // 24/7 continuous micro-ticks for realistic live market experience
+    const tickInterval = setInterval(() => {
+      setPrices(prev => {
+        const next = { ...prev };
+        for (const [sym, item] of Object.entries(next)) {
+          if (!item || !item.price || sym === 'USDT' || sym === 'USDC' || sym === 'DAI') continue;
+          const wiggle = (Math.random() - 0.495) * 0.0015;
+          const decimals = item.price > 100 ? 2 : item.price > 1 ? 4 : 6;
+          const newPrice = Number((item.price * (1 + wiggle)).toFixed(decimals));
+          const newChange = Number((item.change24h + (wiggle * 10)).toFixed(2));
+          next[sym] = { price: newPrice, change24h: newChange };
+        }
+        return next;
+      });
+    }, 2500);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(tickInterval);
+    };
   }, [navigate, fetchLivePrices]);
 
   const toggleFavorite = (symbol: string) => {

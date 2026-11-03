@@ -47,6 +47,8 @@ export const AdminReferrals = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState<{ id: string } | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [approveModal, setApproveModal] = useState<{ id: string; referrerEmail: string; defaultAmount: number | string; coin: string } | null>(null);
+  const [customAmount, setCustomAmount] = useState<string>('');
 
   const load = async (status: string) => {
     const token = localStorage.getItem('token');
@@ -75,24 +77,25 @@ export const AdminReferrals = () => {
     load(filterStatus);
   }, [filterStatus]);
 
-  const handleApprove = async (id: string, referrerEmail: string, amount: string | number, coin: string) => {
-    if (!confirm(`Approve this 5% referral bonus (${amount} ${coin}) and credit ${referrerEmail}'s account?`)) {
-      return;
-    }
+  const confirmApprove = async () => {
+    if (!approveModal) return;
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    setActionLoading(id);
+    setActionLoading(approveModal.id);
     try {
-      const res = await fetch(`/api/referrals/admin/${id}/approve`, {
+      const res = await fetch(`/api/referrals/admin/${approveModal.id}/approve`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ customAmount: customAmount ? parseFloat(customAmount) : undefined }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to approve referral bonus');
+      setApproveModal(null);
+      setCustomAmount('');
       load(filterStatus);
     } catch (err: any) {
       setError(err.message);
@@ -245,10 +248,18 @@ export const AdminReferrals = () => {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               disabled={actionLoading === b.id}
-                              onClick={() => handleApprove(b.id, b.referrer.email, b.amount, b.coin)}
+                              onClick={() => {
+                                setApproveModal({
+                                  id: b.id,
+                                  referrerEmail: b.referrer.email,
+                                  defaultAmount: b.amount,
+                                  coin: b.coin,
+                                });
+                                setCustomAmount(String(b.amount));
+                              }}
                               className="px-3 py-1 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded text-xs font-semibold transition-colors"
                             >
-                              {actionLoading === b.id ? 'Approving...' : 'Approve'}
+                              Approve
                             </button>
                             <button
                               disabled={actionLoading === b.id}
@@ -269,6 +280,55 @@ export const AdminReferrals = () => {
             </div>
           )}
         </div>
+
+        {/* Approve Custom Amount Modal */}
+        {approveModal && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-[#1c1c1c] border border-neutral-800 rounded-xl p-6 max-w-md w-full">
+              <h3 className="text-lg font-bold mb-2 text-white">Approve Referral Bonus</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Credit referral bonus to <strong className="text-white">{approveModal.referrerEmail}</strong>. You can manually adjust the bonus amount below before approving.
+              </p>
+              
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wide">
+                  Bonus Amount ({approveModal.coin})
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    className="w-full bg-[#111] border border-neutral-700 rounded-lg p-3 text-white text-base font-bold outline-none focus:border-[#ff6a00]"
+                    placeholder={String(approveModal.defaultAmount)}
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                    {approveModal.coin}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">Default 5% calculation: {approveModal.defaultAmount} {approveModal.coin}</p>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setApproveModal(null)}
+                  className="px-4 py-2 rounded-lg text-sm text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmApprove}
+                  disabled={actionLoading === approveModal.id || !customAmount || Number(customAmount) < 0}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-lg text-sm font-semibold transition-colors"
+                >
+                  {actionLoading === approveModal.id ? 'Crediting...' : 'Confirm & Credit Bonus'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Reject Modal */}
         {rejectModal && (

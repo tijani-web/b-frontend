@@ -102,13 +102,13 @@ export const Referrals = () => {
               <div className="bg-[#121216]/60 rounded-xl p-4 border border-[#2a2a36]">
                 <div className="text-xs text-gray-400 mb-1">🎁 Your Friend Gets:</div>
                 <div className="text-sm font-semibold text-white">
-                  An automatic <span className="text-[#ff6a00] font-bold">$50.00 USDT</span> signup bonus directly credited to their wallet upon account creation!
+                  Eligible for a <span className="text-[#ff6a00] font-bold">$15.00 USDT</span> signup bonus credited once approved by administration!
                 </div>
               </div>
               <div className="bg-[#121216]/60 rounded-xl p-4 border border-[#2a2a36]">
                 <div className="text-xs text-gray-400 mb-1">💰 You Earn:</div>
                 <div className="text-sm font-semibold text-white">
-                  A <span className="text-green-400 font-bold">5% cash referral bonus</span> on the very first deposit your friend makes once approved!
+                  <span className="text-green-400 font-bold">Up to 5% cash referral bonus in commissions once approved</span> on the first deposit your friend makes!
                 </div>
               </div>
             </div>

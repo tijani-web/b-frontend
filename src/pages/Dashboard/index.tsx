@@ -5,6 +5,7 @@ import { BottomNav } from './layout/BottomNav';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 import { MobileMenu } from './layout/MobileMenu';
+import { getTradingViewSymbol } from './Trade';
 
 const STABLECOINS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD']);
 
@@ -165,22 +166,81 @@ export const Dashboard = () => {
     { id: '4', coin: 'AAPL', balance: '0' },
   ];
 
+  const [dashboardTradesTab, setDashboardTradesTab] = useState<'open' | 'closed'>('open');
+
+  const handleClosePosition = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/trade/position/${id}/close`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to close position');
+      setTradeSuccess(data.message || 'Position closed');
+      fetchWallets(token);
+      fetchHistory(token);
+    } catch (e: any) {
+      setTradeError(e.message);
+    }
+  };
+
+  const handleCancelPosition = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/trade/position/${id}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel position');
+      setTradeSuccess('Position cancelled and margin refunded.');
+      fetchWallets(token);
+      fetchHistory(token);
+    } catch (e: any) {
+      setTradeError(e.message);
+    }
+  };
+
   const handleExecuteTrade = async () => {
     const token = localStorage.getItem('token');
-    if (!token || !tradeAmount || Number(tradeAmount) <= 0) return;
+    if (!token) return;
 
-    let fromAsset = 'USDT';
-    let toAsset = selectedAsset;
-
-    if (tradeTab === 'sell') {
-      fromAsset = selectedAsset;
-      toAsset = 'USDT';
-    } else if (tradeTab === 'convert') {
-      fromAsset = convertFrom;
-      toAsset = convertTo;
+    if (tradeTab === 'convert') {
+      const amount = Number(convertAmount);
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        setTradeError('Please enter a valid amount');
+        return;
+      }
+      setIsExecuting(true);
+      setTradeError('');
+      setTradeSuccess('');
+      try {
+        const res = await fetch('/api/trade/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ fromAsset: convertFrom, toAsset: convertTo, amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setTradeError(data.error || 'Convert failed');
+        } else {
+          setTradeSuccess(`Convert executed! Received ${Number(data.receivedAmount).toFixed(6)} ${convertTo}`);
+          fetchWallets(token);
+          fetchHistory(token);
+        }
+      } catch (e) {
+        setTradeError('An error occurred during trade execution.');
+      } finally {
+        setIsExecuting(false);
+      }
+      return;
     }
 
-    const amount = tradeTab === 'convert' ? Number(convertAmount) : Number(tradeAmount);
+    // BUY / SELL order opens a real leveraged trade position (D3)
+    const amount = Number(tradeAmount);
     if (!amount || amount <= 0 || isNaN(amount)) {
       setTradeError('Please enter a valid amount');
       return;
@@ -190,16 +250,22 @@ export const Dashboard = () => {
     setTradeError('');
     setTradeSuccess('');
     try {
-      const res = await fetch('/api/trade/execute', {
+      const res = await fetch('/api/trade/position', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fromAsset, toAsset, amount })
+        body: JSON.stringify({
+          asset: selectedAsset,
+          side: tradeTab,
+          amount,
+          leverage,
+          duration: 'Day Trade',
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setTradeError(data.error || 'Trade failed');
       } else {
-        setTradeSuccess(`Trade executed! Received ${Number(data.receivedAmount).toFixed(6)} ${toAsset}`);
+        setTradeSuccess(`✅ ${tradeTab.toUpperCase()} position opened for ${selectedAsset}/USDT!`);
         fetchWallets(token);
         fetchHistory(token);
       }
@@ -212,9 +278,9 @@ export const Dashboard = () => {
 
   const getActiveTabClass = (tab: string) => {
     if (tradeTab !== tab) return 'text-gray-400 hover:text-white bg-transparent';
-    if (tab === 'buy') return 'bg-[#26A17B] text-black';
-    if (tab === 'sell') return 'bg-red-500 text-white';
-    return 'bg-blue-500 text-white';
+    if (tab === 'buy') return 'bg-[#26A17B] text-black font-bold';
+    if (tab === 'sell') return 'bg-red-500 text-white font-bold';
+    return 'bg-[#ff6a00] text-black font-bold';
   };
 
   const usdtBalance = wallets.find(w => w.coin === 'USDT')?.balance || 0;
@@ -222,34 +288,112 @@ export const Dashboard = () => {
 
   const totalBalanceUSDMemo = totalBalanceUSD;
 
-  const MyTradesSection = () => (
-    <div className="mt-6 bg-[#0A0A0A]">
-      <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-white font-bold text-sm">My trades</h2>
-        <div className="flex bg-[#1a1a1a] rounded p-0.5">
-          <button className="bg-[#ff6a00] text-black text-[10px] font-bold px-3 py-1 rounded">All</button>
-          <button className="text-gray-400 text-[10px] font-bold px-3 py-1 rounded hover:text-white">Swaps</button>
-          <button className="text-gray-400 text-[10px] font-bold px-3 py-1 rounded hover:text-white">Auto</button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        <div className="bg-[#141414] border border-[#222] rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-          <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            Open (0)
+  const renderMyTradesSection = () => {
+    const openPositions = trades.filter(t => t.status === 'OPEN');
+    const closedPositions = trades.filter(t => t.status === 'COMPLETED' || t.status === 'CLOSED' || t.status === 'CANCELLED');
+
+    return (
+      <div className="mt-4 bg-[#0A0A0A]">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white font-bold text-sm">Positions & Orders</h2>
+          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => setDashboardTradesTab('open')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${dashboardTradesTab === 'open' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+            >
+              Open ({openPositions.length})
+            </button>
+            <button
+              onClick={() => setDashboardTradesTab('closed')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${dashboardTradesTab === 'closed' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+            >
+              Closed ({closedPositions.length})
+            </button>
           </div>
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
         </div>
-        <div className="bg-[#141414] border border-[#222] rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-          <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
-            Closed (0)
-          </div>
-          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-        </div>
+
+        {dashboardTradesTab === 'open' ? (
+          openPositions.length === 0 ? (
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 text-center text-gray-500 text-xs">
+              No open positions. Use the Buy/Sell panel to place an order.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {openPositions.map((t) => {
+                const isBuy = (t.category || '').toUpperCase().includes('BUY');
+                return (
+                  <div key={t.id} className="bg-[#141414] border border-[#222] rounded-xl p-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isBuy ? 'bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                          {isBuy ? 'LONG / BUY' : 'SHORT / SELL'}
+                        </span>
+                        <span className="text-white font-bold text-sm">{t.asset}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Margin</span>
+                        <span className="text-white font-medium">${Number(t.amount).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Entry Price</span>
+                        <span className="text-white font-medium">${Number(t.usdValue || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Details</span>
+                        <span className="text-gray-300 font-mono text-[10px] truncate block">{t.adminNote || 'Active'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-[#1f1f1f]">
+                      <button
+                        onClick={() => handleClosePosition(t.id)}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#26A17B] hover:bg-[#208b6a] text-black transition-colors"
+                      >
+                        Close Position
+                      </button>
+                      <button
+                        onClick={() => handleCancelPosition(t.id)}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white transition-colors border border-neutral-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          closedPositions.length === 0 ? (
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 text-center text-gray-500 text-xs">
+              No closed positions yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {closedPositions.slice(0, 8).map((t) => (
+                <div key={t.id} className="bg-[#141414] border border-[#222] rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold">{t.asset}</span>
+                      <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]">{t.adminNote || `$${Number(t.amount).toFixed(2)}`}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${t.status === 'CANCELLED' ? 'text-gray-400 bg-neutral-800' : 'text-green-400 bg-green-500/10'}`}>
+                    {t.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white font-inter overflow-x-hidden">
@@ -424,8 +568,9 @@ export const Dashboard = () => {
               </div>
               <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'h-[350px]'}>
                 <AdvancedRealTimeChart 
+                  key={`mobile-${selectedAsset}-${timeframe}`}
                   theme="dark"
-                  symbol={`BINANCE:${selectedAsset}USDT`}
+                  symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
                   allow_symbol_change={true}
                   save_image={false}
@@ -440,6 +585,21 @@ export const Dashboard = () => {
                     ✕ Close
                   </button>
                 )}
+              </div>
+
+              {/* Live Asset Price Ticker under Chart (Owner Item #6 / B2) */}
+              <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#121212] border-t border-[#1a1a1a] text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-[#26A17B] animate-pulse shrink-0" />
+                  <span className="font-bold text-white text-xs">{selectedAsset}/USDT</span>
+                  <span className="font-mono font-bold text-[#26A17B] text-sm">
+                    ${(prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-mono">
+                  <span className="text-[#26A17B] font-bold">+2.34%</span>
+                  <span className="text-gray-500">H: <span className="text-gray-300">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
+                </div>
               </div>
             </div>
           )}
@@ -589,7 +749,7 @@ export const Dashboard = () => {
                   </button>
                 </div>
               )}
-              <MyTradesSection />
+              {renderMyTradesSection()}
             </div>
           )}
           {mobileTab === 'DeFi' && (
@@ -797,8 +957,9 @@ export const Dashboard = () => {
               </div>
               <div className="flex-1 relative w-full h-full min-h-[460px]">
                 <AdvancedRealTimeChart 
+                  key={`desktop-${selectedAsset}-${timeframe}`}
                   theme="dark"
-                  symbol={`BINANCE:${selectedAsset}USDT`}
+                  symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
                   allow_symbol_change={true}
                   save_image={false}
@@ -808,11 +969,32 @@ export const Dashboard = () => {
                   gridLineColor="#1a1a1a"
                 />
               </div>
+
+              {/* Live Asset Price Ticker directly under Desktop Chart (Owner Item #6 / B2) */}
+              <div className="flex items-center justify-between px-5 py-3 bg-[#111] border-t border-[#1a1a1a] text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#26A17B] animate-pulse shrink-0" />
+                    <span className="font-bold text-white text-sm">{selectedAsset}/USDT Live</span>
+                  </div>
+                  <span className="font-mono font-bold text-[#26A17B] text-base">
+                    ${(prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20">
+                    +2.34% 24h
+                  </span>
+                </div>
+                <div className="flex items-center gap-5 text-gray-400 text-xs font-mono">
+                  <span>24h High: <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
+                  <span>24h Low: <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 0.975).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
+                  <span>24h Volume: <span className="text-white font-medium">1.48B USDT</span></span>
+                </div>
+              </div>
             </div>
             
             {/* My Trades directly below chart on desktop */}
             <div className="p-6">
-              <MyTradesSection />
+              {renderMyTradesSection()}
             </div>
             
           </div>

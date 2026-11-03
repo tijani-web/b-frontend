@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AdminLayout } from './AdminLayout';
-import { depositsApi } from '../../lib/api';
+import { depositsApi, BASE_ORIGIN } from '../../lib/api';
 
 const STATUS_STYLES: Record<string, string> = {
   PENDING: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
@@ -129,7 +129,7 @@ export const AdminDeposits = () => {
                     <td className="px-5 py-4 font-mono text-xs text-gray-400 max-w-[140px] truncate">{d.walletAddressUsed}</td>
                     <td className="px-5 py-4">
                       {d.proofUrl ? (
-                        <a href={`http://localhost:5000${d.proofUrl}`} target="_blank" rel="noreferrer" className="text-xs text-[#ff6a00] hover:text-amber-300">View</a>
+                        <a href={`${BASE_ORIGIN}${d.proofUrl}`} target="_blank" rel="noreferrer" className="text-xs text-[#ff6a00] hover:text-amber-300">View</a>
                       ) : <span className="text-gray-600">—</span>}
                     </td>
                     <td className="px-5 py-4">

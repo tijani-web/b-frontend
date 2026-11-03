@@ -177,15 +177,15 @@ export const Register = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-1">Get started</h1>
           <p className="text-gray-400 text-sm mb-6">Create a new account</p>
 
-          {/* Welcome $50 Bonus Banner */}
+          {/* Welcome $15 Bonus Banner */}
           <div className="mb-6 bg-gradient-to-r from-[#ff6a00]/10 via-[#ff6a00]/5 to-transparent border border-[#ff6a00]/30 rounded-2xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#ff6a00] flex items-center justify-center shrink-0 text-white font-bold text-lg shadow-lg shadow-[#ff6a00]/20">
-              $50
+              $15
             </div>
             <div>
               <p className="text-sm font-bold text-gray-900">Welcome Signup Bonus</p>
               <p className="text-xs text-gray-600">
-                An automatic <span className="text-[#ff6a00] font-semibold">$50.00 USDT</span> will be credited to your account upon signing up!
+                Eligible for a <span className="text-[#ff6a00] font-semibold">$15.00 USDT</span> signup bonus, credited upon admin approval!
               </p>
             </div>
           </div>

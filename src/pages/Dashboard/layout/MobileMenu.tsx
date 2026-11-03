@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ConnectWalletModal } from '../../../components/ConnectWalletModal';
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export const MobileMenu = ({ isOpen, onClose, userInitial }: MobileMenuProps) =>
   const touchStartX = useRef<number | null>(null);
   const touchStartY = useRef<number | null>(null);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
+  const [showConnectWallet, setShowConnectWallet] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -49,7 +51,7 @@ export const MobileMenu = ({ isOpen, onClose, userInitial }: MobileMenuProps) =>
     { name: 'Assets', icon: <svg className="w-5 h-5 mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>, path: '/assets' },
     { name: 'Referrals', icon: <svg className="w-5 h-5 mb-2 text-[#ff6a00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2"/></svg>, path: '/referrals' },
     { name: 'KYC Verify', icon: <svg className="w-5 h-5 mb-2 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>, path: '/kyc' },
-    { name: 'Settings', icon: <svg className="w-5 h-5 mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/></svg>, path: '/settings' },
+    { name: 'Connect Wallet', icon: <svg className="w-5 h-5 mb-2 text-[#ff6a00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>, action: 'connect-wallet' },
     { name: 'Support', icon: <svg className="w-5 h-5 mb-2 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z"/></svg>, path: '/support' },
   ];
 
@@ -139,8 +141,12 @@ export const MobileMenu = ({ isOpen, onClose, userInitial }: MobileMenuProps) =>
             <button 
               key={index} 
               onClick={() => {
+                if ((item as any).action === 'connect-wallet') {
+                  setShowConnectWallet(true);
+                  return;
+                }
                 onClose();
-                navigate(item.path);
+                if (item.path) navigate(item.path);
               }}
               className="bg-[#202028] hover:bg-[#2b2b36] border border-[#2d2d38] rounded-xl p-3 flex flex-col items-center justify-center gap-1 active:scale-95 transition-all h-24 shadow-sm"
             >
@@ -167,6 +173,8 @@ export const MobileMenu = ({ isOpen, onClose, userInitial }: MobileMenuProps) =>
         </div>
         <p className="text-[10px] text-neutral-500">Swipe down or tap close to exit</p>
       </div>
+
+      {showConnectWallet && <ConnectWalletModal onClose={() => setShowConnectWallet(false)} />}
     </div>
   );
 };

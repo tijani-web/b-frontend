@@ -1,10 +1,12 @@
 // Centralized API client — all requests go through here
 // import.meta.env.DEV is true during `npm run dev`, false in production builds
-const BASE = import.meta.env.DEV
-  ? 'http://localhost:5000/api'
-  : 'https://b-backend-kv4v.onrender.com/api';
+export const BASE_ORIGIN = import.meta.env.DEV
+  ? 'http://localhost:5000'
+  : 'https://b-backend-kv4v.onrender.com';
 
-function getToken(): string {
+const BASE = `${BASE_ORIGIN}/api`;
+
+export function getToken(): string {
   return localStorage.getItem('token') || '';
 }
 
@@ -98,7 +100,7 @@ export const kycApi = {
   approve: (id: string) => request<any>('PUT', `/kyc/admin/${id}/approve`),
   reject: (id: string, reason?: string) =>
     request<any>('PUT', `/kyc/admin/${id}/reject`, { reason }),
-  fileUrl: (id: string) => `${BASE}/kyc/admin/${id}/file`,
+  fileUrl: (id: string) => `${BASE}/kyc/admin/${id}/file?token=${encodeURIComponent(getToken())}`,
 };
 
 // ─── Admin ────────────────────────────────────────────────────────────────────
@@ -108,5 +110,17 @@ export const adminApi = {
     request<any>('GET', `/admin/users${buildQuery(params)}`),
   getUser: (id: string) => request<any>('GET', `/admin/users/${id}`),
   deleteUser: (id: string) => request<any>('DELETE', `/admin/users/${id}`),
+  creditProfit: (id: string, body: { category: string; coin?: string; amount: number; note?: string }) =>
+    request<any>('POST', `/admin/users/${id}/credit-profit`, body),
+  approveWelcomeBonus: (id: string) =>
+    request<any>('POST', `/admin/users/${id}/approve-welcome-bonus`),
 };
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+export const notificationsApi = {
+  getAll: (limit = 30) => request<any>('GET', `/notifications?limit=${limit}`),
+  markRead: (id: string) => request<any>('PUT', `/notifications/${id}/read`),
+  markAllRead: () => request<any>('PUT', '/notifications/read-all'),
+};
+
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from './AdminLayout';
+import { BASE_ORIGIN } from '../../lib/api';
 
 interface Trader {
   id: string;
@@ -49,6 +50,30 @@ export const AdminCopyTraders: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const r = await fetch(`${BASE_ORIGIN}/api/copy-traders/admin/upload-avatar`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token()}` },
+        body: formData,
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Upload failed');
+      setField('avatar', d.data.url);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const fetchTraders = async () => {
     setLoading(true);
@@ -194,8 +219,12 @@ export const AdminCopyTraders: React.FC = () => {
                   <tr key={t.id} className="hover:bg-[#161616] transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#222] flex items-center justify-center text-lg border border-[#333]">
-                          {t.avatar}
+                        <div className="w-9 h-9 rounded-full bg-[#222] flex items-center justify-center text-lg border border-[#333] overflow-hidden shrink-0">
+                          {t.avatar?.startsWith('http') || t.avatar?.startsWith('/uploads') || t.avatar?.startsWith('data:') ? (
+                            <img src={t.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${t.avatar}` : t.avatar} alt={t.name} className="w-full h-full object-cover" />
+                          ) : (
+                            t.avatar
+                          )}
                         </div>
                         <span className="text-white font-medium">{t.name}</span>
                       </div>
@@ -281,13 +310,35 @@ export const AdminCopyTraders: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-400 font-medium mb-1.5">Avatar (emoji)</label>
-                  <input
-                    value={modal.form.avatar}
-                    onChange={(e) => setField('avatar', e.target.value)}
-                    className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-3 py-2.5 text-white text-sm focus:border-[#ff6a00] outline-none"
-                    placeholder="🤖"
-                  />
+                  <label className="block text-xs text-gray-400 font-medium mb-1.5">Avatar (Photo or Emoji)</label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-xl overflow-hidden shrink-0">
+                      {modal.form.avatar?.startsWith('http') || modal.form.avatar?.startsWith('/uploads') || modal.form.avatar?.startsWith('data:') ? (
+                        <img src={modal.form.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${modal.form.avatar}` : modal.form.avatar} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        modal.form.avatar || '🤖'
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#252525] hover:bg-[#303030] text-xs font-medium text-white rounded-lg border border-[#3a3a3a] transition-colors">
+                        <svg className="w-3.5 h-3.5 text-[#ff6a00]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                        <span>{uploadingAvatar ? 'Uploading...' : 'Upload Photo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={uploadingAvatar}
+                          onChange={handleAvatarFileChange}
+                        />
+                      </label>
+                      <input
+                        value={modal.form.avatar}
+                        onChange={(e) => setField('avatar', e.target.value)}
+                        className="w-full bg-[#1a1a1a] border border-[#333] rounded-lg px-2.5 py-1 text-white text-xs focus:border-[#ff6a00] outline-none"
+                        placeholder="Or paste URL / emoji"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-400 font-medium mb-1.5">ROI * (e.g. +142.3%)</label>

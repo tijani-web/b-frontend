@@ -2,6 +2,15 @@ import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { BottomNav } from './layout/BottomNav';
 import { useState, useEffect } from 'react';
+import { BASE_ORIGIN } from '../../lib/api';
+
+const renderTraderAvatar = (avatar: string) => {
+  if (avatar && (avatar.startsWith('http') || avatar.startsWith('/uploads') || avatar.startsWith('data:'))) {
+    const src = avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${avatar}` : avatar;
+    return <img src={src} alt="avatar" className="w-full h-full object-cover" />;
+  }
+  return <span>{avatar || '🤖'}</span>;
+};
 
 interface Trader {
   id: string;
@@ -86,9 +95,9 @@ export const CopyTradingDashboard = () => {
 
   const fetchActiveCopies = async () => {
     try {
-      const res = await fetch('/api/user/transactions', { headers: { Authorization: `Bearer ${token()}` } });
+      const res = await fetch('/api/copy-traders/my', { headers: { Authorization: `Bearer ${token()}` } });
       const data = await res.json();
-      if (data.data) setActiveCopies(data.data.filter((t: any) => t.type === 'COPY_TRADE'));
+      if (data.data) setActiveCopies(data.data.filter((c: any) => c.status === 'ACTIVE'));
     } catch {}
   };
 
@@ -103,25 +112,42 @@ export const CopyTradingDashboard = () => {
 
   const handleCopy = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeModalId || !copyAmount || !copyAsset) return;
+    if (!activeModalId || !copyAmount) return;
     setIsLoading(true); setError(''); setSuccessMsg('');
     try {
-      const res = await fetch('/api/trade/copy', {
+      const res = await fetch('/api/copy-traders/copy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ traderId: activeModalId, amount: parseFloat(copyAmount), asset: copyAsset }),
+        body: JSON.stringify({ traderId: activeModalId, amount: parseFloat(copyAmount), coin: copyAsset }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setCopyingId(activeModalId);
+      if (!res.ok) throw new Error(data.error || 'Failed to start copy');
       setActiveModalId(null);
       setCopyAmount('');
       const trader = traders.find(t => t.id === activeModalId);
       setSuccessMsg(`Successfully copying ${trader?.name || 'trader'}!`);
       setTimeout(() => setSuccessMsg(''), 5000);
       fetchActiveCopies();
+      fetchTraders();
     } catch (e: any) { setError(e.message); }
     finally { setIsLoading(false); }
+  };
+
+  const handleCancelCopy = async (traderId: string) => {
+    try {
+      const res = await fetch(`/api/copy-traders/cancel/${traderId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel copy');
+      setSuccessMsg('Copy trade cancelled and funds refunded.');
+      setTimeout(() => setSuccessMsg(''), 5000);
+      fetchActiveCopies();
+      fetchTraders();
+    } catch (e: any) {
+      setError(e.message);
+    }
   };
 
   const handleSaveTrader = async (e: React.FormEvent) => {
@@ -246,7 +272,7 @@ export const CopyTradingDashboard = () => {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center gap-3">
                             <div className="w-11 h-11 rounded-full bg-[#222] flex items-center justify-center text-xl border border-[#333] overflow-hidden shrink-0">
-                              {trader.avatar}
+                              {renderTraderAvatar(trader.avatar)}
                             </div>
                             <div>
                               <div className="flex items-center gap-1">
@@ -303,7 +329,7 @@ export const CopyTradingDashboard = () => {
                           </button>
                           {isCopying ? (
                             <button
-                              onClick={() => setCopyingId(null)}
+                              onClick={() => handleCancelCopy(trader.id)}
                               className="flex-1 py-2.5 rounded-lg text-xs font-bold bg-red-500 hover:bg-red-600 text-white transition-colors"
                             >
                               CANCEL
@@ -340,13 +366,15 @@ export const CopyTradingDashboard = () => {
                   {copyingTraders.map(trader => (
                     <div key={trader.id} className="bg-[#141414] border border-[#26A17B]/30 rounded-xl p-5">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center text-lg">{trader.avatar}</div>
+                        <div className="w-10 h-10 rounded-full bg-[#222] flex items-center justify-center text-lg overflow-hidden shrink-0">
+                          {renderTraderAvatar(trader.avatar)}
+                        </div>
                         <div>
                           <p className="text-white font-bold text-sm">{trader.name}</p>
                           <p className="text-[#26A17B] text-xs font-medium">● Copying</p>
                         </div>
                       </div>
-                      <button onClick={() => setCopyingId(null)} className="w-full py-2 rounded-lg text-xs font-bold bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors border border-red-500/20">
+                      <button onClick={() => handleCancelCopy(trader.id)} className="w-full py-2 rounded-lg text-xs font-bold bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition-colors border border-red-500/20">
                         Cancel Copy
                       </button>
                     </div>
@@ -512,8 +540,8 @@ export const CopyTradingDashboard = () => {
                 
                 <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                   <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 rounded-full bg-[#2a2a2a] flex items-center justify-center text-3xl border border-[#333] shrink-0">
-                      {t.avatar}
+                    <div className="w-14 h-14 rounded-full bg-[#2a2a2a] flex items-center justify-center text-3xl border border-[#333] overflow-hidden shrink-0">
+                      {renderTraderAvatar(t.avatar)}
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
@@ -535,7 +563,7 @@ export const CopyTradingDashboard = () => {
                   )}
                   
                   {isCopying ? (
-                    <button onClick={() => { setCopyingId(null); setViewDrawerId(null); }} className="w-full bg-[#ff4d4f] hover:bg-[#ff7875] text-white font-bold rounded-lg py-3 mb-8 transition-all">
+                    <button onClick={() => { handleCancelCopy(t.id); setViewDrawerId(null); }} className="w-full bg-[#ff4d4f] hover:bg-[#ff7875] text-white font-bold rounded-lg py-3 mb-8 transition-all">
                       CANCEL
                     </button>
                   ) : (

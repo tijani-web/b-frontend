@@ -19,8 +19,33 @@ interface TradeRecord {
   amount: number;
   usdValue: number;
   status: string;
+  category?: string;
+  adminNote?: string;
   createdAt: string;
 }
+
+export const getTradingViewSymbol = (asset: string) => {
+  const stockSymbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX', 'AMD', 'INTC', 'CRM', 'ORCL', 'IBM', 'CSCO', 'ADBE', 'PYPL', 'SQ', 'COIN', 'HOOD', 'JPM', 'GS', 'BAC', 'V', 'MA', 'DIS', 'SPOT', 'SNAP', 'UBER', 'LYFT', 'ABNB', 'SHOP', 'ZM', 'PLTR', 'NKE', 'SBUX', 'MCD', 'KO', 'PEP', 'WMT', 'TGT', 'AMGN', 'JNJ', 'PFE', 'MRNA', 'BABA', 'TSM', 'F', 'GM', 'BA', 'XOM', 'CVX'];
+  if (stockSymbols.includes(asset)) {
+    return `NASDAQ:${asset}`;
+  }
+  const commodityMap: Record<string, string> = {
+    GOLD: 'TVC:GOLD',
+    SILVER: 'TVC:SILVER',
+    OIL: 'TVC:USOIL',
+    BRENT: 'TVC:UKOIL',
+    GAS: 'TVC:NATGAS',
+    PLAT: 'TVC:PLATINUM',
+    PALL: 'TVC:PALLADIUM',
+    COPP: 'TVC:COPPER',
+  };
+  if (commodityMap[asset]) return commodityMap[asset];
+  const fiatSymbols = ['EUR', 'GBP', 'JPY', 'CNY', 'CAD', 'AUD', 'CHF', 'SGD', 'HKD', 'NZD'];
+  if (fiatSymbols.includes(asset)) {
+    return `FX:${asset}USD`;
+  }
+  return `BINANCE:${asset}USDT`;
+};
 
 const ALL_ASSETS = [
   { symbol: 'AAVE',   name: 'AAVE',                              color: '#B6509E', icon: 'A' },
@@ -265,24 +290,81 @@ export const Trade = () => {
     return () => clearInterval(interval);
   }, [navigate]);
 
+  const [expandedTradeTab, setExpandedTradeTab] = useState<'open' | 'closed'>('open');
+
+  const handleClosePosition = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/trade/position/${id}/close`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to close position');
+      setTradeSuccess(data.message || 'Position closed');
+      fetchWallets(token);
+      fetchHistory(token);
+    } catch (e: any) {
+      setTradeError(e.message);
+    }
+  };
+
+  const handleCancelPosition = async (id: string) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/trade/position/${id}/cancel`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to cancel position');
+      setTradeSuccess('Position cancelled and margin refunded.');
+      fetchWallets(token);
+      fetchHistory(token);
+    } catch (e: any) {
+      setTradeError(e.message);
+    }
+  };
+
   const handleExecuteTrade = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    let fromAsset = 'USDT';
-    let toAsset = selectedAsset;
-    let amount = Number(tradeAmount);
-
-    if (tradeTab === 'sell') {
-      fromAsset = selectedAsset;
-      toAsset = 'USDT';
-      amount = Number(tradeAmount);
-    } else if (tradeTab === 'convert') {
-      fromAsset = convertFrom;
-      toAsset = convertTo;
-      amount = Number(convertAmount);
+    if (tradeTab === 'convert') {
+      const amount = Number(convertAmount);
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        setTradeError('Please enter a valid amount');
+        return;
+      }
+      setIsExecuting(true);
+      setTradeError('');
+      setTradeSuccess('');
+      try {
+        const res = await fetch('/api/trade/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ fromAsset: convertFrom, toAsset: convertTo, amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setTradeError(data.error || 'Convert failed');
+        } else {
+          setTradeSuccess(`Convert executed! Received ${data.receivedAmount?.toFixed(4)} ${convertTo}`);
+          fetchWallets(token);
+          fetchHistory(token);
+        }
+      } catch (e) {
+        setTradeError('An error occurred during trade execution.');
+      } finally {
+        setIsExecuting(false);
+      }
+      return;
     }
 
+    // BUY / SELL order creation
+    const amount = Number(tradeAmount);
     if (!amount || amount <= 0 || isNaN(amount)) {
       setTradeError('Please enter a valid amount');
       return;
@@ -292,16 +374,22 @@ export const Trade = () => {
     setTradeError('');
     setTradeSuccess('');
     try {
-      const res = await fetch('/api/trade/execute', {
+      const res = await fetch('/api/trade/position', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ fromAsset, toAsset, amount })
+        body: JSON.stringify({
+          asset: selectedAsset,
+          side: tradeTab,
+          amount,
+          leverage,
+          duration,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setTradeError(data.error || 'Trade failed');
       } else {
-        setTradeSuccess(`Trade executed! Received ${data.receivedAmount?.toFixed(4)} ${toAsset}`);
+        setTradeSuccess(`✅ ${tradeTab.toUpperCase()} position opened for ${selectedAsset}/USDT!`);
         fetchWallets(token);
         fetchHistory(token);
       }
@@ -335,32 +423,115 @@ export const Trade = () => {
 
   const getAssetMeta = (symbol: string) => ALL_ASSETS.find(a => a.symbol === symbol) ?? { symbol, name: symbol, color: '#888', icon: symbol[0] };
 
-  const MyTradesSection = () => (
-    <div className="mt-4">
-      <div className="flex items-center gap-3 mb-3">
-        <h2 className="text-white font-bold text-sm">My trades</h2>
-        <div className="flex bg-[#1a1a1a] rounded-lg p-0.5">
-          {['All', 'Swaps', 'Auto'].map(t => (
-            <button key={t} className={`text-[10px] font-bold px-3 py-1 rounded-md transition-colors ${t === 'All' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}>{t}</button>
-          ))}
-        </div>
-      </div>
-      <div className="space-y-2">
-        {[
-          { label: `Open (${trades.filter(t => t.status === 'OPEN').length})`, icon: <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-          { label: `Closed (${trades.filter(t => t.status === 'COMPLETED' || t.status === 'CLOSED').length})`, icon: <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg> },
-        ].map(({ label, icon }) => (
-          <div key={label} className="bg-[#141414] border border-[#222] rounded-lg px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-[#1a1a1a] transition-colors">
-            <div className="flex items-center gap-2 text-gray-300 text-sm font-medium">{icon}{label}</div>
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+  const renderMyTradesSection = () => {
+    const openPositions = trades.filter(t => t.status === 'OPEN');
+    const closedPositions = trades.filter(t => t.status === 'COMPLETED' || t.status === 'CLOSED' || t.status === 'CANCELLED');
+
+    return (
+      <div className="mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-white font-bold text-sm">Positions & Orders</h2>
+          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs">
+            <button
+              onClick={() => setExpandedTradeTab('open')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${expandedTradeTab === 'open' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+            >
+              Open ({openPositions.length})
+            </button>
+            <button
+              onClick={() => setExpandedTradeTab('closed')}
+              className={`px-3 py-1 rounded-md font-bold transition-colors ${expandedTradeTab === 'closed' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+            >
+              Closed ({closedPositions.length})
+            </button>
           </div>
-        ))}
+        </div>
+
+        {expandedTradeTab === 'open' ? (
+          openPositions.length === 0 ? (
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-6 text-center text-gray-500 text-xs">
+              No open positions. Use the Buy/Sell panel to place an order.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {openPositions.map((t) => {
+                const isBuy = (t.category || '').toUpperCase().includes('BUY');
+                return (
+                  <div key={t.id} className="bg-[#141414] border border-[#222] rounded-xl p-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${isBuy ? 'bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                          {isBuy ? 'LONG / BUY' : 'SHORT / SELL'}
+                        </span>
+                        <span className="text-white font-bold text-sm">{t.asset}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Margin</span>
+                        <span className="text-white font-medium">${Number(t.amount).toFixed(2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Entry Price</span>
+                        <span className="text-white font-medium">${Number(t.usdValue || 0).toLocaleString()}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500 text-[10px] block">Details</span>
+                        <span className="text-gray-300 font-mono text-[10px] truncate block">{t.adminNote || 'Active'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-[#1f1f1f]">
+                      <button
+                        onClick={() => handleClosePosition(t.id)}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-[#26A17B] hover:bg-[#208b6a] text-black transition-colors"
+                      >
+                        Close Position
+                      </button>
+                      <button
+                        onClick={() => handleCancelPosition(t.id)}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-neutral-800 hover:bg-neutral-700 text-gray-300 hover:text-white transition-colors border border-neutral-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : (
+          closedPositions.length === 0 ? (
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-6 text-center text-gray-500 text-xs">
+              No closed positions yet.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {closedPositions.slice(0, 10).map((t) => (
+                <div key={t.id} className="bg-[#141414] border border-[#222] rounded-xl p-3 flex items-center justify-between text-xs">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-white font-bold">{t.asset}</span>
+                      <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[200px]">{t.adminNote || `$${Number(t.amount).toFixed(2)}`}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${t.status === 'CANCELLED' ? 'text-gray-400 bg-neutral-800' : 'text-green-400 bg-green-500/10'}`}>
+                    {t.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   // ─── Right Panel (shared between mobile & desktop) ────────────────────────
-  const TradePanel = () => (
+  const renderTradePanel = () => (
     <div className="relative flex flex-col h-full bg-[#0A0A0A]">
       {/* Asset Picker Overlay */}
       {showAssetPicker && (
@@ -626,8 +797,6 @@ export const Trade = () => {
         {/* Global Trade Alerts for Buy, Sell, and Convert */}
         {tradeError && <div className="mt-4 text-red-400 text-xs font-medium text-center bg-red-400/10 border border-red-400/20 py-2.5 px-3 rounded-lg">{tradeError}</div>}
         {tradeSuccess && <div className="mt-4 text-[#26A17B] text-xs font-medium text-center bg-[#26A17B]/10 border border-[#26A17B]/20 py-2.5 px-3 rounded-lg">{tradeSuccess}</div>}
-
-        <MyTradesSection />
       </div>
     </div>
   );
@@ -673,10 +842,10 @@ export const Trade = () => {
               ))}
             </div>
           </div>
-          <div className="h-[340px]">
+          <div className="h-[500px]">
             <AdvancedRealTimeChart
               theme="dark"
-              symbol={`BINANCE:${selectedAsset}USDT`}
+              symbol={getTradingViewSymbol(selectedAsset)}
               interval={timeframe}
               allow_symbol_change={false}
               save_image={false}
@@ -691,7 +860,12 @@ export const Trade = () => {
 
         {/* Trade Panel */}
         <div className="mx-4 bg-[#141414] border border-[#222] rounded-2xl overflow-hidden relative">
-          <TradePanel />
+          {renderTradePanel()}
+        </div>
+
+        {/* Mobile My Trades */}
+        <div className="mx-4 mt-6 mb-24">
+          {renderMyTradesSection()}
         </div>
       </div>
       <BottomNav />
@@ -746,10 +920,10 @@ export const Trade = () => {
                 {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
               </button>
             </div>
-            <div className="flex-1 relative min-h-[520px]">
+            <div className="flex-1 relative min-h-[640px]">
               <AdvancedRealTimeChart
                 theme="dark"
-                symbol={`BINANCE:${selectedAsset}USDT`}
+                symbol={getTradingViewSymbol(selectedAsset)}
                 interval={timeframe}
                 allow_symbol_change={true}
                 save_image={false}
@@ -761,14 +935,14 @@ export const Trade = () => {
             </div>
             {!chartExpanded && (
               <div className="p-6 border-t border-[#1a1a1a]">
-                <MyTradesSection />
+                {renderMyTradesSection()}
               </div>
             )}
           </div>
 
           {/* Right: Trade Panel */}
           <div className="relative overflow-hidden">
-            <TradePanel />
+            {renderTradePanel()}
           </div>
         </div>
       </div>

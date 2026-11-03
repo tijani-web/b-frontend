@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { ConnectWalletModal } from '../../../components/ConnectWalletModal';
 
 export const Sidebar = () => {
   const location = useLocation();
@@ -12,6 +13,7 @@ export const Sidebar = () => {
   const [tradeOpen, setTradeOpen] = useState(true);
   const [moreOpen, setMoreOpen] = useState(true);
   const [comingSoonDrawer, setComingSoonDrawer] = useState<string | null>(null);
+  const [showConnectWallet, setShowConnectWallet] = useState(false);
   const [referralDrawer, setReferralDrawer] = useState(false);
   const [referralData, setReferralData] = useState<{
     referralCode: string;
@@ -136,7 +138,15 @@ export const Sidebar = () => {
             <DrawerLink label="Cards" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>} />
             <NavLink indent to="/subscribe" label="Subscribe" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>} />
             <NavLink indent to="/signals" label="Signals" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>} />
-            <DrawerLink label="Connect Wallet" icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>} />
+            <button
+              onClick={() => setShowConnectWallet(true)}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-400 hover:text-white hover:bg-[#1c1c1c]/50 pl-9"
+            >
+              <span className="text-gray-500">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+              </span>
+              <span className="flex-1 text-left">Connect Wallet</span>
+            </button>
           </div>
         )}
 
@@ -262,10 +272,10 @@ export const Sidebar = () => {
                   <span className="text-xs font-bold text-[#ff6a00] uppercase tracking-wider">How it works</span>
                 </div>
                 <p className="text-gray-300 text-xs leading-relaxed mb-2">
-                  • <strong>Your Friend Gets:</strong> An automatic <span className="text-[#ff6a00] font-semibold">$50.00 USDT</span> signup bonus directly credited into their account upon registration!
+                  • <strong>Your Friend Gets:</strong> Eligible for a <span className="text-[#ff6a00] font-semibold">$15.00 USDT</span> signup bonus credited once approved by administration!
                 </p>
                 <p className="text-gray-300 text-xs leading-relaxed">
-                  • <strong>You Get:</strong> A <span className="text-green-400 font-semibold">5% referral bonus</span> on the first deposit your friend makes once approved by administration.
+                  • <strong>You Get:</strong> <span className="text-green-400 font-semibold">Up to 5% cash referral bonus in commissions once approved</span> on the first deposit your friend makes.
                 </p>
               </div>
 
@@ -424,6 +434,8 @@ export const Sidebar = () => {
         </>,
         document.body
       )}
+
+      {showConnectWallet && <ConnectWalletModal onClose={() => setShowConnectWallet(false)} />}
     </aside>
   );
 };
