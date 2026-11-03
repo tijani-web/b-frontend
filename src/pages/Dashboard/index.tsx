@@ -572,23 +572,15 @@ export const Dashboard = () => {
                   </button>
                 </div>
               </div>
-              <div 
-                className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-                style={{ height: chartExpanded ? '100vh' : '520px', minHeight: chartExpanded ? '100vh' : '520px' }}
-              >
+              <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'h-[350px]'}>
                 <AdvancedRealTimeChart 
-                  key={`mobile-${selectedAsset}-${timeframe}`}
                   theme="dark"
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
                   allow_symbol_change={true}
                   save_image={false}
                   hide_side_toolbar={true}
-                  autosize={chartExpanded}
-                  width="100%"
-                  height={chartExpanded ? '100%' : 520}
-                  backgroundColor="#0A0A0A"
-                  copyrightStyles={{ parent: { display: 'none' } }}
+                  autosize
                 />
                 {chartExpanded && (
                   <button
@@ -1030,9 +1022,8 @@ export const Dashboard = () => {
                   {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
                 </button>
               </div>
-              <div className="flex-1 relative w-full h-full min-h-[640px]" style={{ minHeight: '640px', height: '640px' }}>
+              <div className="flex-1 relative w-full h-full min-h-[460px]">
                 <AdvancedRealTimeChart 
-                  key={`desktop-${selectedAsset}-${timeframe}`}
                   theme="dark"
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
@@ -1040,10 +1031,7 @@ export const Dashboard = () => {
                   save_image={false}
                   hide_side_toolbar={false}
                   autosize
-                  width="100%"
-                  height="100%"
                   backgroundColor="#0A0A0A"
-                  copyrightStyles={{ parent: { display: 'none' } }}
                 />
               </div>
 
@@ -1126,7 +1114,7 @@ export const Dashboard = () => {
             </div>
 
             {/* Bottom Right: Trade Controls */}
-            <div className="p-6 flex-1 bg-[#0A0A0A]">
+            <div className="p-6 flex-1 bg-[#0A0A0A] pb-12 relative z-10">
               <div className="flex bg-[#141414] rounded-lg p-1 mb-6">
                 <button 
                   onClick={() => setTradeTab('buy')}
@@ -1253,7 +1241,7 @@ export const Dashboard = () => {
         </div>
 
         {/* Bottom Section: Order History */}
-        <div className="p-6 bg-[#0A0A0A] border-t border-[#1a1a1a]">
+        <div className="p-6 bg-[#0A0A0A] border-t border-[#1a1a1a] relative z-0 clear-both mt-8">
           <h2 className="text-lg font-bold mb-4">Order History</h2>
           
           <div className="bg-[#141414] rounded-xl border border-[#1a1a1a] overflow-hidden">

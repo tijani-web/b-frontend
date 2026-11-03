@@ -888,7 +888,7 @@ export const Trade = () => {
           </div>
           <div 
             className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-            style={{ height: chartExpanded ? '100vh' : '520px', minHeight: chartExpanded ? '100vh' : '520px' }}
+            style={{ height: chartExpanded ? '100vh' : '480px', minHeight: chartExpanded ? '100vh' : '480px' }}
           >
             <AdvancedRealTimeChart
               key={`mobile-trade-${selectedAsset}-${timeframe}`}
@@ -901,7 +901,7 @@ export const Trade = () => {
               hide_top_toolbar={true}
               autosize={chartExpanded}
               width="100%"
-              height={chartExpanded ? '100%' : 520}
+              height={chartExpanded ? '100%' : 480}
               backgroundColor="#0A0A0A"
               copyrightStyles={{ parent: { display: 'none' } }}
             />
@@ -930,12 +930,13 @@ export const Trade = () => {
       <BottomNav />
 
       {/* ══════════ DESKTOP LAYOUT ══════════ */}
-      <div className="hidden md:flex flex-1 ml-[260px] flex-col h-screen overflow-y-auto custom-scrollbar">
+      <div className="hidden md:flex flex-1 ml-[260px] flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
         <Header />
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] min-h-[calc(100vh-64px)]">
-          {/* Left: Chart + My Trades */}
-          <div className={`flex flex-col border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
-            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
+        <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
+          {/* Left: Chart + My Trades — scrollable column */}
+          <div className={`flex flex-col flex-1 overflow-y-auto custom-scrollbar border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
+            {/* Chart toolbar */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: getAssetMeta(selectedAsset).color }}>
@@ -979,7 +980,9 @@ export const Trade = () => {
                 {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
               </button>
             </div>
-            <div className="flex-1 relative min-h-[640px]" style={{ minHeight: '640px', height: '640px' }}>
+
+            {/* Chart — takes up majority of the left column */}
+            <div className="shrink-0" style={{ height: '580px', minHeight: '580px' }}>
               <AdvancedRealTimeChart
                 key={`desktop-trade-${selectedAsset}-${timeframe}`}
                 theme="dark"
@@ -995,6 +998,8 @@ export const Trade = () => {
                 copyrightStyles={{ parent: { display: 'none' } }}
               />
             </div>
+
+            {/* My Trades / Positions section */}
             {!chartExpanded && (
               <div className="p-6 border-t border-[#1a1a1a]">
                 {renderMyTradesSection()}
@@ -1002,8 +1007,8 @@ export const Trade = () => {
             )}
           </div>
 
-          {/* Right: Trade Panel */}
-          <div className="relative overflow-hidden">
+          {/* Right: Trade Panel — fixed-width, independently scrollable */}
+          <div className="w-[380px] shrink-0 overflow-y-auto custom-scrollbar">
             {renderTradePanel()}
           </div>
         </div>
