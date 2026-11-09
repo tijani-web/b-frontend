@@ -232,6 +232,9 @@ export const Trade = () => {
   const [tradeSuccess, setTradeSuccess] = useState('');
   const [timeframe, setTimeframe] = useState<'1' | '30' | '60' | 'D'>('D');
   const [chartExpanded, setChartExpanded] = useState(false);
+  // Stable chart key — only changes when asset OR timeframe actually changes, never on re-render
+  const chartKey = useRef(`trade-${selectedAsset}-${timeframe}`);
+  useEffect(() => { chartKey.current = `trade-${selectedAsset}-${timeframe}`; }, [selectedAsset, timeframe]);
 
   const navigate = useNavigate();
 
@@ -888,7 +891,7 @@ export const Trade = () => {
           </div>
           <div 
             className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-            style={{ height: chartExpanded ? '100vh' : '480px', minHeight: chartExpanded ? '100vh' : '480px' }}
+            style={{ height: chartExpanded ? '100vh' : '340px', minHeight: chartExpanded ? '100vh' : '340px' }}
           >
             <AdvancedRealTimeChart
               key={`mobile-trade-${selectedAsset}-${timeframe}`}
@@ -901,7 +904,7 @@ export const Trade = () => {
               hide_top_toolbar={true}
               autosize={chartExpanded}
               width="100%"
-              height={chartExpanded ? '100%' : 480}
+              height={chartExpanded ? '100%' : 340}
               backgroundColor="#0A0A0A"
               copyrightStyles={{ parent: { display: 'none' } }}
             />

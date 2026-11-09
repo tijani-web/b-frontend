@@ -64,6 +64,9 @@ export const Dashboard = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [timeframe, setTimeframe] = useState<'1' | '30' | '60' | 'D'>('D');
   const [chartExpanded, setChartExpanded] = useState(false);
+  const [duration, setDuration] = useState('2 minutes');
+  const [showDurationMenu, setShowDurationMenu] = useState(false);
+  const DURATION_OPTIONS = ['1 minute', '2 minutes', '5 minutes', '15 minutes', '30 minutes', '1 hour', 'Day Trade'];
 
   // Trade Panel State
   const [tradeTab, setTradeTab] = useState<'buy' | 'sell' | 'convert'>('buy');
@@ -799,9 +802,27 @@ export const Dashboard = () => {
 
                   <div className="pb-2">
                     <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
-                    <div className="bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
-                      2 minutes
-                      <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    <div className="relative">
+                      <div
+                        onClick={() => setShowDurationMenu(d => !d)}
+                        className="bg-[#1a1a1a] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer"
+                      >
+                        {duration}
+                        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      </div>
+                      {showDurationMenu && (
+                        <div className="absolute top-full left-0 right-0 z-20 bg-[#1a1a1a] border border-[#333] rounded-xl mt-1 overflow-hidden shadow-xl">
+                          {DURATION_OPTIONS.map(opt => (
+                            <button
+                              key={opt}
+                              onClick={() => { setDuration(opt); setShowDurationMenu(false); }}
+                              className={`w-full text-left px-4 py-3 text-xs transition-colors ${duration === opt ? 'text-[#ff6a00] bg-[#ff6a00]/10' : 'text-gray-300 hover:bg-[#222]'}`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1022,7 +1043,7 @@ export const Dashboard = () => {
                   {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
                 </button>
               </div>
-              <div className="flex-1 relative w-full h-full min-h-[460px]">
+              <div className="flex-1 relative w-full h-full min-h-[560px]" style={{ minHeight: '560px' }}>
                 <AdvancedRealTimeChart 
                   theme="dark"
                   symbol={getTradingViewSymbol(selectedAsset)}
@@ -1217,9 +1238,27 @@ export const Dashboard = () => {
 
                     <div>
                       <label className="block text-[10px] text-gray-500 font-medium mb-1.5">Duration</label>
-                      <div className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer">
-                        Day Trade
-                        <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                      <div className="relative">
+                        <div
+                          onClick={() => setShowDurationMenu(d => !d)}
+                          className="bg-[#141414] border border-[#222] rounded-lg px-3 py-2.5 text-xs font-bold flex justify-between items-center cursor-pointer"
+                        >
+                          {duration}
+                          <svg className="w-3 h-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                        {showDurationMenu && (
+                          <div className="absolute top-full left-0 right-0 z-20 bg-[#1a1a1a] border border-[#333] rounded-xl mt-1 overflow-hidden shadow-xl">
+                            {DURATION_OPTIONS.map(opt => (
+                              <button
+                                key={opt}
+                                onClick={() => { setDuration(opt); setShowDurationMenu(false); }}
+                                className={`w-full text-left px-4 py-3 text-xs transition-colors ${duration === opt ? 'text-[#ff6a00] bg-[#ff6a00]/10' : 'text-gray-300 hover:bg-[#222]'}`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
