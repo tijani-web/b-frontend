@@ -303,18 +303,18 @@ export const Dashboard = () => {
 
     return (
       <div className="mt-4 bg-[#0A0A0A]">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-white font-bold text-sm">Positions & Orders</h2>
-          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+          <h2 className="text-white font-bold text-sm tracking-tight">Positions & Orders</h2>
+          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs w-full sm:w-auto">
             <button
               onClick={() => setDashboardTradesTab('open')}
-              className={`px-3 py-1 rounded-md font-bold transition-colors ${dashboardTradesTab === 'open' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-md font-bold text-center transition-colors ${dashboardTradesTab === 'open' ? 'bg-[#ff6a00] text-black shadow-sm' : 'text-gray-400 hover:text-white'}`}
             >
               Open ({openPositions.length})
             </button>
             <button
               onClick={() => setDashboardTradesTab('closed')}
-              className={`px-3 py-1 rounded-md font-bold transition-colors ${dashboardTradesTab === 'closed' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-md font-bold text-center transition-colors ${dashboardTradesTab === 'closed' ? 'bg-[#ff6a00] text-black shadow-sm' : 'text-gray-400 hover:text-white'}`}
             >
               Closed ({closedPositions.length})
             </button>
@@ -323,7 +323,7 @@ export const Dashboard = () => {
 
         {dashboardTradesTab === 'open' ? (
           openPositions.length === 0 ? (
-            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 text-center text-gray-500 text-xs">
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 text-center text-gray-400 text-xs font-medium">
               No open positions. Use the Buy/Sell panel to place an order.
             </div>
           ) : (
@@ -342,16 +342,16 @@ export const Dashboard = () => {
                       <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Margin</span>
                         <span className="text-white font-medium">${Number(t.amount).toFixed(2)}</span>
                       </div>
-                      <div>
+                      <div className="bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Entry Price</span>
                         <span className="text-white font-medium">${Number(t.usdValue || 0).toLocaleString()}</span>
                       </div>
-                      <div>
+                      <div className="col-span-2 sm:col-span-1 bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Details</span>
                         <span className="text-gray-300 font-mono text-[10px] truncate block">{t.adminNote || 'Active'}</span>
                       </div>
@@ -575,8 +575,12 @@ export const Dashboard = () => {
                   </button>
                 </div>
               </div>
-              <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'h-[350px]'}>
+              <div 
+                className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
+                style={{ height: chartExpanded ? '100vh' : '420px', minHeight: chartExpanded ? '100vh' : '420px' }}
+              >
                 <AdvancedRealTimeChart 
+                  container_id="blofin_dash_mobile_chart"
                   theme="dark"
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
@@ -584,6 +588,8 @@ export const Dashboard = () => {
                   save_image={false}
                   hide_side_toolbar={true}
                   autosize
+                  backgroundColor="#0A0A0A"
+                  copyrightStyles={{ parent: { display: 'none' } }}
                 />
                 {chartExpanded && (
                   <button
@@ -1000,7 +1006,7 @@ export const Dashboard = () => {
             </div>
 
             {/* Bottom Left: TradingView Chart Area */}
-            <div className={`flex flex-col bg-[#0A0A0A] transition-all duration-300 ${chartExpanded ? 'fixed inset-0 z-50 p-6 bg-[#0A0A0A]' : 'flex-1 p-0 min-h-[520px]'}`}>
+            <div className={`flex flex-col bg-[#0A0A0A] transition-all duration-300 ${chartExpanded ? 'fixed inset-0 z-50 p-6 bg-[#0A0A0A]' : 'p-0 w-full'}`}>
               <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a]">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
@@ -1043,8 +1049,9 @@ export const Dashboard = () => {
                   {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
                 </button>
               </div>
-              <div className="flex-1 relative w-full h-full min-h-[560px]" style={{ minHeight: '560px' }}>
+              <div className="w-full relative shrink-0" style={{ height: chartExpanded ? 'calc(100vh - 120px)' : '540px', minHeight: chartExpanded ? 'calc(100vh - 120px)' : '540px' }}>
                 <AdvancedRealTimeChart 
+                  container_id="blofin_dash_desktop_chart"
                   theme="dark"
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
@@ -1053,6 +1060,7 @@ export const Dashboard = () => {
                   hide_side_toolbar={false}
                   autosize
                   backgroundColor="#0A0A0A"
+                  copyrightStyles={{ parent: { display: 'none' } }}
                 />
               </div>
 

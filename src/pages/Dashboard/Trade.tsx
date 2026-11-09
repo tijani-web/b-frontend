@@ -434,18 +434,18 @@ export const Trade = () => {
 
     return (
       <div className="mt-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-white font-bold text-sm">Positions & Orders</h2>
-          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3">
+          <h2 className="text-white font-bold text-sm tracking-tight">Positions & Orders</h2>
+          <div className="flex bg-[#141414] border border-[#222] rounded-lg p-0.5 text-xs w-full sm:w-auto">
             <button
               onClick={() => setExpandedTradeTab('open')}
-              className={`px-3 py-1 rounded-md font-bold transition-colors ${expandedTradeTab === 'open' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-md font-bold text-center transition-colors ${expandedTradeTab === 'open' ? 'bg-[#ff6a00] text-black shadow-sm' : 'text-gray-400 hover:text-white'}`}
             >
               Open ({openPositions.length})
             </button>
             <button
               onClick={() => setExpandedTradeTab('closed')}
-              className={`px-3 py-1 rounded-md font-bold transition-colors ${expandedTradeTab === 'closed' ? 'bg-[#ff6a00] text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-md font-bold text-center transition-colors ${expandedTradeTab === 'closed' ? 'bg-[#ff6a00] text-black shadow-sm' : 'text-gray-400 hover:text-white'}`}
             >
               Closed ({closedPositions.length})
             </button>
@@ -454,7 +454,7 @@ export const Trade = () => {
 
         {expandedTradeTab === 'open' ? (
           openPositions.length === 0 ? (
-            <div className="bg-[#141414] border border-[#222] rounded-xl p-6 text-center text-gray-500 text-xs">
+            <div className="bg-[#141414] border border-[#222] rounded-xl p-5 text-center text-gray-400 text-xs font-medium">
               No open positions. Use the Buy/Sell panel to place an order.
             </div>
           ) : (
@@ -473,16 +473,16 @@ export const Trade = () => {
                       <span className="text-[10px] text-gray-500">{new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                      <div className="bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Margin</span>
                         <span className="text-white font-medium">${Number(t.amount).toFixed(2)}</span>
                       </div>
-                      <div>
+                      <div className="bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Entry Price</span>
                         <span className="text-white font-medium">${Number(t.usdValue || 0).toLocaleString()}</span>
                       </div>
-                      <div>
+                      <div className="col-span-2 sm:col-span-1 bg-[#101010] p-2 rounded-lg border border-[#1c1c1c]">
                         <span className="text-gray-500 text-[10px] block">Details</span>
                         <span className="text-gray-300 font-mono text-[10px] truncate block">{t.adminNote || 'Active'}</span>
                       </div>
@@ -891,10 +891,11 @@ export const Trade = () => {
           </div>
           <div 
             className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-            style={{ height: chartExpanded ? '100vh' : '340px', minHeight: chartExpanded ? '100vh' : '340px' }}
+            style={{ height: chartExpanded ? '100vh' : '460px', minHeight: chartExpanded ? '100vh' : '460px' }}
           >
             <AdvancedRealTimeChart
               key={`mobile-trade-${selectedAsset}-${timeframe}`}
+              container_id="blofin_trade_mobile_chart"
               theme="dark"
               symbol={getTradingViewSymbol(selectedAsset)}
               interval={timeframe}
@@ -902,9 +903,9 @@ export const Trade = () => {
               save_image={false}
               hide_side_toolbar={true}
               hide_top_toolbar={true}
-              autosize={chartExpanded}
+              autosize
               width="100%"
-              height={chartExpanded ? '100%' : 340}
+              height="100%"
               backgroundColor="#0A0A0A"
               copyrightStyles={{ parent: { display: 'none' } }}
             />
@@ -933,9 +934,9 @@ export const Trade = () => {
       <BottomNav />
 
       {/* ══════════ DESKTOP LAYOUT ══════════ */}
-      <div className="hidden md:flex flex-1 ml-[260px] flex-col" style={{ height: '100vh', overflow: 'hidden' }}>
+      <div className="hidden md:flex flex-1 ml-[260px] flex-col min-h-screen xl:h-screen xl:overflow-hidden">
         <Header />
-        <div className="flex flex-1 overflow-hidden" style={{ height: 'calc(100vh - 64px)' }}>
+        <div className="flex flex-col xl:flex-row flex-1 xl:overflow-hidden min-h-[calc(100vh-64px)]">
           {/* Left: Chart + My Trades — scrollable column */}
           <div className={`flex flex-col flex-1 overflow-y-auto custom-scrollbar border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
             {/* Chart toolbar */}
@@ -985,9 +986,10 @@ export const Trade = () => {
             </div>
 
             {/* Chart — takes up majority of the left column */}
-            <div className="shrink-0" style={{ height: '580px', minHeight: '580px' }}>
+            <div className="shrink-0 w-full" style={{ height: chartExpanded ? 'calc(100vh - 120px)' : '580px', minHeight: chartExpanded ? 'calc(100vh - 120px)' : '580px' }}>
               <AdvancedRealTimeChart
                 key={`desktop-trade-${selectedAsset}-${timeframe}`}
+                container_id="blofin_trade_desktop_chart"
                 theme="dark"
                 symbol={getTradingViewSymbol(selectedAsset)}
                 interval={timeframe}
@@ -1010,8 +1012,8 @@ export const Trade = () => {
             )}
           </div>
 
-          {/* Right: Trade Panel — fixed-width, independently scrollable */}
-          <div className="w-[380px] shrink-0 overflow-y-auto custom-scrollbar">
+          {/* Right: Trade Panel — fixed-width on large desktop, full-width on smaller screens */}
+          <div className="w-full xl:w-[380px] shrink-0 overflow-y-auto custom-scrollbar border-t xl:border-t-0 border-[#1a1a1a]">
             {renderTradePanel()}
           </div>
         </div>
