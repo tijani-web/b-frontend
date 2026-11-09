@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { BottomNav } from './layout/BottomNav';
@@ -6,6 +6,61 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 import { MobileMenu } from './layout/MobileMenu';
 import { getTradingViewSymbol } from './Trade';
+
+interface MemoChartProps {
+  symbol: string;
+  interval: string;
+  containerId: string;
+  height: string | number;
+  autosize?: boolean;
+  hideSideToolbar?: boolean;
+  hideTopToolbar?: boolean;
+}
+
+const MemoTradingChart = React.memo(
+  ({
+    symbol,
+    interval,
+    containerId,
+    height,
+    autosize = true,
+    hideSideToolbar = false,
+    hideTopToolbar = false,
+  }: MemoChartProps) => {
+    return (
+      <div 
+        className="tv-chart-container w-full relative"
+        style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: typeof height === 'number' ? `${height}px` : height }}
+      >
+        <AdvancedRealTimeChart
+          key={containerId}
+          container_id={containerId}
+          theme="dark"
+          symbol={symbol}
+          interval={interval as any}
+          allow_symbol_change={true}
+          save_image={false}
+          hide_side_toolbar={hideSideToolbar}
+          hide_top_toolbar={hideTopToolbar}
+          autosize={autosize}
+          width="100%"
+          height="100%"
+          backgroundColor="#0A0A0A"
+          copyrightStyles={{ parent: { display: 'none' } }}
+        />
+      </div>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.symbol === next.symbol &&
+      prev.interval === next.interval &&
+      prev.containerId === next.containerId &&
+      prev.height === next.height &&
+      prev.autosize === next.autosize
+    );
+  }
+);
 
 const STABLECOINS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD']);
 
@@ -575,21 +630,14 @@ export const Dashboard = () => {
                   </button>
                 </div>
               </div>
-              <div 
-                className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-                style={{ height: chartExpanded ? '100vh' : '420px', minHeight: chartExpanded ? '100vh' : '420px' }}
-              >
-                <AdvancedRealTimeChart 
-                  container_id="blofin_dash_mobile_chart"
-                  theme="dark"
+              <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}>
+                <MemoTradingChart 
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
-                  allow_symbol_change={true}
-                  save_image={false}
-                  hide_side_toolbar={true}
-                  autosize
-                  backgroundColor="#0A0A0A"
-                  copyrightStyles={{ parent: { display: 'none' } }}
+                  containerId="tradingview_dash_mobile_chart"
+                  height={chartExpanded ? '100vh' : 460}
+                  autosize={true}
+                  hideSideToolbar={true}
                 />
                 {chartExpanded && (
                   <button
@@ -1049,18 +1097,14 @@ export const Dashboard = () => {
                   {chartExpanded ? 'Exit Fullscreen' : 'Expand Chart'}
                 </button>
               </div>
-              <div className="w-full relative shrink-0" style={{ height: chartExpanded ? 'calc(100vh - 120px)' : '540px', minHeight: chartExpanded ? 'calc(100vh - 120px)' : '540px' }}>
-                <AdvancedRealTimeChart 
-                  container_id="blofin_dash_desktop_chart"
-                  theme="dark"
+              <div className="w-full relative shrink-0">
+                <MemoTradingChart 
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
-                  allow_symbol_change={true}
-                  save_image={false}
-                  hide_side_toolbar={false}
-                  autosize
-                  backgroundColor="#0A0A0A"
-                  copyrightStyles={{ parent: { display: 'none' } }}
+                  containerId="tradingview_dash_desktop_chart"
+                  height={chartExpanded ? 'calc(100vh - 120px)' : 540}
+                  autosize={true}
+                  hideSideToolbar={false}
                 />
               </div>
 
@@ -1286,68 +1330,6 @@ export const Dashboard = () => {
             
           </div>
         </div>
-
-        {/* Bottom Section: Order History */}
-        <div className="p-6 bg-[#0A0A0A] border-t border-[#1a1a1a] relative z-0 clear-both mt-8">
-          <h2 className="text-lg font-bold mb-4">Order History</h2>
-          
-          <div className="bg-[#141414] rounded-xl border border-[#1a1a1a] overflow-hidden">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#1a1a1a] text-gray-400 text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Date</th>
-                  <th className="px-6 py-4 font-medium">Pair / Type</th>
-                  <th className="px-6 py-4 font-medium">Direction</th>
-                  <th className="px-6 py-4 font-medium">Amount</th>
-                  <th className="px-6 py-4 font-medium">Value (USD)</th>
-                  <th className="px-6 py-4 font-medium text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1a1a1a]">
-                {loading && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">Loading history...</td>
-                  </tr>
-                )}
-                {!loading && trades.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-gray-500">
-                      No trading history found.
-                    </td>
-                  </tr>
-                )}
-                {!loading && trades.map(trade => (
-                  <tr key={trade.id} className="hover:bg-[#1a1a1a]/50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-300">
-                      {new Date(trade.createdAt).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">
-                      {trade.asset.replace('_TO_', '/')}
-                      {trade.type === 'COPY_TRADE' && <span className="ml-2 text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">Copy</span>}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {trade.asset.startsWith('USDT') || trade.type === 'COPY_TRADE' ? (
-                         <span className="text-[#26A17B] font-medium bg-[#26A17B]/10 px-2 py-1 rounded">Buy</span>
-                      ) : (
-                         <span className="text-red-500 font-medium bg-red-500/10 px-2 py-1 rounded">Sell</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-gray-300">
-                      {trade.amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-medium">
-                      ${Number(trade.usdValue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className="text-xs font-medium text-[#26A17B]">{trade.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
       {/* End Desktop */}
 

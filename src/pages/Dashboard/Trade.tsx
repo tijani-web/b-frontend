@@ -1,10 +1,65 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sidebar } from './layout/Sidebar';
 import { Header } from './layout/Header';
 import { BottomNav } from './layout/BottomNav';
 import { useNavigate } from 'react-router-dom';
 import { AdvancedRealTimeChart } from "react-ts-tradingview-widgets";
 import { MobileMenu } from './layout/MobileMenu';
+
+interface MemoChartProps {
+  symbol: string;
+  interval: string;
+  containerId: string;
+  height: string | number;
+  autosize?: boolean;
+  hideSideToolbar?: boolean;
+  hideTopToolbar?: boolean;
+}
+
+const MemoTradingChart = React.memo(
+  ({
+    symbol,
+    interval,
+    containerId,
+    height,
+    autosize = true,
+    hideSideToolbar = false,
+    hideTopToolbar = false,
+  }: MemoChartProps) => {
+    return (
+      <div 
+        className="tv-chart-container w-full relative"
+        style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: typeof height === 'number' ? `${height}px` : height }}
+      >
+        <AdvancedRealTimeChart
+          key={containerId}
+          container_id={containerId}
+          theme="dark"
+          symbol={symbol}
+          interval={interval as any}
+          allow_symbol_change={true}
+          save_image={false}
+          hide_side_toolbar={hideSideToolbar}
+          hide_top_toolbar={hideTopToolbar}
+          autosize={autosize}
+          width="100%"
+          height="100%"
+          backgroundColor="#0A0A0A"
+          copyrightStyles={{ parent: { display: 'none' } }}
+        />
+      </div>
+    );
+  },
+  (prev, next) => {
+    return (
+      prev.symbol === next.symbol &&
+      prev.interval === next.interval &&
+      prev.containerId === next.containerId &&
+      prev.height === next.height &&
+      prev.autosize === next.autosize
+    );
+  }
+);
 
 interface Wallet {
   id: string;
@@ -889,25 +944,14 @@ export const Trade = () => {
               </button>
             </div>
           </div>
-          <div 
-            className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}
-            style={{ height: chartExpanded ? '100vh' : '460px', minHeight: chartExpanded ? '100vh' : '460px' }}
-          >
-            <AdvancedRealTimeChart
-              key={`mobile-trade-${selectedAsset}-${timeframe}`}
-              container_id="blofin_trade_mobile_chart"
-              theme="dark"
+          <div className={chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A]' : 'w-full'}>
+            <MemoTradingChart
               symbol={getTradingViewSymbol(selectedAsset)}
               interval={timeframe}
-              allow_symbol_change={false}
-              save_image={false}
-              hide_side_toolbar={true}
-              hide_top_toolbar={true}
-              autosize
-              width="100%"
-              height="100%"
-              backgroundColor="#0A0A0A"
-              copyrightStyles={{ parent: { display: 'none' } }}
+              containerId="tradingview_trade_mobile_chart"
+              height={chartExpanded ? '100vh' : 520}
+              autosize={true}
+              hideSideToolbar={true}
             />
             {chartExpanded && (
               <button
@@ -986,21 +1030,14 @@ export const Trade = () => {
             </div>
 
             {/* Chart — takes up majority of the left column */}
-            <div className="shrink-0 w-full" style={{ height: chartExpanded ? 'calc(100vh - 120px)' : '580px', minHeight: chartExpanded ? 'calc(100vh - 120px)' : '580px' }}>
-              <AdvancedRealTimeChart
-                key={`desktop-trade-${selectedAsset}-${timeframe}`}
-                container_id="blofin_trade_desktop_chart"
-                theme="dark"
+            <div className="shrink-0 w-full">
+              <MemoTradingChart
                 symbol={getTradingViewSymbol(selectedAsset)}
                 interval={timeframe}
-                allow_symbol_change={true}
-                save_image={false}
-                hide_side_toolbar={false}
-                autosize
-                width="100%"
-                height="100%"
-                backgroundColor="#0A0A0A"
-                copyrightStyles={{ parent: { display: 'none' } }}
+                containerId="tradingview_trade_desktop_chart"
+                height={chartExpanded ? 'calc(100vh - 120px)' : 600}
+                autosize={true}
+                hideSideToolbar={false}
               />
             </div>
 

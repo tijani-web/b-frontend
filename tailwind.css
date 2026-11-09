@@ -172,3 +172,29 @@ html, body, #app {
   position: relative;
   -webkit-text-size-adjust: 100%;
 }
+
+/* Google Translate styles */
+.skiptranslate iframe,
+.goog-te-banner-frame.skiptranslate { display: none !important; }
+#google_translate_element { display: none; }
+
+/* Force TradingView widgets to expand to container height */
+.tv-chart-container,
+.tv-chart-container > div,
+.tv-chart-container iframe,
+div[id^="tradingview_"],
+div[id^="tradingview_"] iframe {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  display: block !important;
+}
+
+.tradingview-widget-copyright {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
