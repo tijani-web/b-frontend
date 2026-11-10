@@ -906,8 +906,8 @@ export const Trade = () => {
         </div>
 
         {/* Chart */}
-        <div className="mx-4 mb-4 rounded-xl overflow-hidden border border-[#222]">
-          <div className="flex items-center justify-between px-3 py-2 bg-[#141414] border-b border-[#222]">
+        <div className="mx-4 mb-4 rounded-xl border border-[#222] bg-[#0A0A0A]">
+          <div className="flex items-center justify-between px-3 py-2 bg-[#141414] border-b border-[#222] rounded-t-xl">
             <span className="text-white text-xs font-bold">{selectedAsset}/USDT</span>
             <div className="flex items-center gap-1.5">
               {[
@@ -978,7 +978,7 @@ export const Trade = () => {
         <Header />
         <div className="flex flex-col xl:flex-row flex-1 xl:overflow-hidden min-h-[calc(100vh-64px)]">
           {/* Left: Chart + My Trades — scrollable column */}
-          <div className={`flex flex-col flex-1 overflow-y-auto custom-scrollbar border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
+          <div className={`flex flex-col flex-1 overflow-y-auto custom-scrollbar xl:border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
             {/* Chart toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
               <div className="flex items-center gap-4">
@@ -1031,7 +1031,7 @@ export const Trade = () => {
                 symbol={getTradingViewSymbol(selectedAsset)}
                 interval={timeframe}
                 containerId="tradingview_trade_desktop_chart"
-                height={chartExpanded ? window.innerHeight - 120 : 600}
+                height={chartExpanded ? window.innerHeight - 120 : 580}
                 hideSideToolbar={false}
               />
             </div>
@@ -1044,8 +1044,8 @@ export const Trade = () => {
             )}
           </div>
 
-          {/* Right: Trade Panel — fixed-width on large desktop, full-width on smaller screens */}
-          <div className="w-full xl:w-[380px] shrink-0 overflow-y-auto custom-scrollbar border-t xl:border-t-0 border-[#1a1a1a]">
+          {/* Right: Trade Panel — full width stacked on md, fixed sidebar on xl */}
+          <div className="w-full xl:w-[380px] xl:max-w-[380px] shrink-0 overflow-y-auto custom-scrollbar border-t xl:border-t-0 xl:border-l border-[#1a1a1a]">
             {renderTradePanel()}
           </div>
         </div>
