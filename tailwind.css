@@ -178,16 +178,26 @@ html, body, #app {
 .goog-te-banner-frame.skiptranslate { display: none !important; }
 #google_translate_element { display: none; }
 
-/* Force TradingView widgets to expand to container height */
-.tv-chart-container,
-.tv-chart-container > div,
-.tv-chart-container iframe,
-div[id^="tradingview_"],
-div[id^="tradingview_"] iframe {
+/* TradingView chart container — explicit pixel heights are set via props,
+   so we only need the outer wrapper and iframe to fill it.
+   DO NOT touch display on inner wrappers — the widget uses display:contents internally. */
+.tv-chart-container {
+  overflow: hidden;
+  position: relative;
+}
+
+/* The outer container div the widget script creates — must fill its parent box */
+div[id^="tradingview_"] {
   width: 100% !important;
   height: 100% !important;
-  min-height: 100% !important;
+}
+
+/* The iframe TradingView injects — must fill the script container */
+.tv-chart-container iframe,
+div[id^="tradingview_"] iframe {
   display: block !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .tradingview-widget-copyright {

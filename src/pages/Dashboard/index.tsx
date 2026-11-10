@@ -11,8 +11,7 @@ interface MemoChartProps {
   symbol: string;
   interval: string;
   containerId: string;
-  height: string | number;
-  autosize?: boolean;
+  height: number;
   hideSideToolbar?: boolean;
   hideTopToolbar?: boolean;
 }
@@ -23,14 +22,13 @@ const MemoTradingChart = React.memo(
     interval,
     containerId,
     height,
-    autosize = true,
     hideSideToolbar = false,
     hideTopToolbar = false,
   }: MemoChartProps) => {
     return (
-      <div 
+      <div
         className="tv-chart-container w-full relative"
-        style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: typeof height === 'number' ? `${height}px` : height }}
+        style={{ height: `${height}px`, minHeight: `${height}px` }}
       >
         <AdvancedRealTimeChart
           key={containerId}
@@ -42,9 +40,9 @@ const MemoTradingChart = React.memo(
           save_image={false}
           hide_side_toolbar={hideSideToolbar}
           hide_top_toolbar={hideTopToolbar}
-          autosize={autosize}
+          autosize={false}
           width="100%"
-          height="100%"
+          height={height}
           backgroundColor="#0A0A0A"
           copyrightStyles={{ parent: { display: 'none' } }}
         />
@@ -56,8 +54,7 @@ const MemoTradingChart = React.memo(
       prev.symbol === next.symbol &&
       prev.interval === next.interval &&
       prev.containerId === next.containerId &&
-      prev.height === next.height &&
-      prev.autosize === next.autosize
+      prev.height === next.height
     );
   }
 );
@@ -635,8 +632,7 @@ export const Dashboard = () => {
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
                   containerId="tradingview_dash_mobile_chart"
-                  height={chartExpanded ? '100vh' : 460}
-                  autosize={true}
+                  height={chartExpanded ? window.innerHeight : 420}
                   hideSideToolbar={true}
                 />
                 {chartExpanded && (
@@ -1102,8 +1098,7 @@ export const Dashboard = () => {
                   symbol={getTradingViewSymbol(selectedAsset)}
                   interval={timeframe}
                   containerId="tradingview_dash_desktop_chart"
-                  height={chartExpanded ? 'calc(100vh - 120px)' : 540}
-                  autosize={true}
+                  height={chartExpanded ? window.innerHeight - 120 : 540}
                   hideSideToolbar={false}
                 />
               </div>
