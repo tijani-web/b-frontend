@@ -478,7 +478,10 @@ export const Trade = () => {
     else setConvertTo(symbol);
   };
 
-  const getAssetMeta = (symbol: string) => ALL_ASSETS.find(a => a.symbol === symbol) ?? { symbol, name: symbol, color: '#888', icon: symbol[0] };
+  const getAssetMeta = (symbol: string) => {
+    const sym = symbol === 'SOLANA' ? 'SOL' : symbol === 'BITCOIN' ? 'BTC' : symbol === 'ETHEREUM' ? 'ETH' : symbol === 'TETHER' ? 'USDT' : symbol;
+    return ALL_ASSETS.find(a => a.symbol === sym || a.symbol === symbol) ?? { symbol, name: symbol, color: '#888', icon: symbol[0] };
+  };
 
   const renderMyTradesSection = () => {
     const openPositions = trades.filter(t => t.status === 'OPEN');
@@ -974,11 +977,11 @@ export const Trade = () => {
       <BottomNav />
 
       {/* ══════════ DESKTOP LAYOUT ══════════ */}
-      <div className="hidden md:flex flex-1 ml-[260px] flex-col min-h-screen xl:h-screen xl:overflow-hidden">
+      <div className="hidden md:flex flex-1 ml-[260px] flex-col h-screen overflow-y-auto custom-scrollbar">
         <Header />
-        <div className="flex flex-col xl:flex-row flex-1 xl:overflow-hidden min-h-[calc(100vh-64px)]">
-          {/* Left: Chart + My Trades — scrollable column */}
-          <div className={`flex flex-col flex-1 overflow-y-auto custom-scrollbar xl:border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_380px] min-h-[calc(100vh-64px)] flex-1">
+          {/* Left: Chart + My Trades */}
+          <div className={`flex flex-col border-b lg:border-b-0 lg:border-r border-[#1a1a1a] ${chartExpanded ? 'fixed inset-0 z-50 bg-[#0A0A0A] p-6' : ''}`}>
             {/* Chart toolbar */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-[#1a1a1a] shrink-0">
               <div className="flex items-center gap-4">
@@ -1044,8 +1047,8 @@ export const Trade = () => {
             )}
           </div>
 
-          {/* Right: Trade Panel — full width stacked on md, fixed sidebar on xl */}
-          <div className="w-full xl:w-[380px] xl:max-w-[380px] shrink-0 overflow-y-auto custom-scrollbar border-t xl:border-t-0 xl:border-l border-[#1a1a1a]">
+          {/* Right: Trade Panel — side-by-side on lg+, stacked below on smaller screens */}
+          <div className="w-full bg-[#0A0A0A] flex flex-col">
             {renderTradePanel()}
           </div>
         </div>

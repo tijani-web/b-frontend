@@ -61,6 +61,15 @@ const MemoTradingChart = React.memo(
 
 const STABLECOINS = new Set(['USDT', 'USDC', 'DAI', 'BUSD', 'TUSD']);
 
+export const normalizeCoinSymbol = (c: string): string => {
+  const u = (c || '').trim().toUpperCase();
+  if (u === 'SOLANA') return 'SOL';
+  if (u === 'BITCOIN') return 'BTC';
+  if (u === 'ETHEREUM') return 'ETH';
+  if (u === 'TETHER') return 'USDT';
+  return u;
+};
+
 interface Wallet {
   id: string;
   coin: string;
@@ -80,13 +89,17 @@ interface TradeRecord {
 }
 
 const ASSET_META: Record<string, { name: string; color: string; icon: string }> = {
-  BTC:  { name: 'Bitcoin',  color: '#F7931A', icon: '₿' },
-  ETH:  { name: 'Ethereum', color: '#627EEA', icon: 'Ξ' },
-  USDT: { name: 'Tether',   color: '#26A17B', icon: '₮' },
-  USDC: { name: 'USD Coin', color: '#2775CA', icon: '$' },
-  SOL:  { name: 'Solana',   color: '#9945FF', icon: '◎' },
-  BNB:  { name: 'BNB',      color: '#F3BA2F', icon: 'B' },
-  AAPL: { name: 'Apple',    color: '#ffffff', icon: '' },
+  BTC:      { name: 'Bitcoin',  color: '#F7931A', icon: '₿' },
+  BITCOIN:  { name: 'Bitcoin',  color: '#F7931A', icon: '₿' },
+  ETH:      { name: 'Ethereum', color: '#627EEA', icon: 'Ξ' },
+  ETHEREUM: { name: 'Ethereum', color: '#627EEA', icon: 'Ξ' },
+  USDT:     { name: 'Tether',   color: '#26A17B', icon: '₮' },
+  TETHER:   { name: 'Tether',   color: '#26A17B', icon: '₮' },
+  USDC:     { name: 'USD Coin', color: '#2775CA', icon: '$' },
+  SOL:      { name: 'Solana',   color: '#9945FF', icon: '◎' },
+  SOLANA:   { name: 'Solana',   color: '#9945FF', icon: '◎' },
+  BNB:      { name: 'BNB',      color: '#F3BA2F', icon: 'B' },
+  AAPL:     { name: 'Apple',    color: '#ffffff', icon: '' },
 };
 
 const ALL_CONVERT_COINS = ['BTC', 'ETH', 'USDT', 'SOL', 'BNB', 'USDC', 'XRP', 'ADA', 'DOGE', 'AAPL'];
@@ -95,10 +108,14 @@ const MOBILE_TABS = ['Crypto', 'DeFi', 'Mining', 'History'];
 
 const INITIAL_PRICES: Record<string, number> = {
   BTC: 82180,
+  BITCOIN: 82180,
   ETH: 3240,
+  ETHEREUM: 3240,
   SOL: 154,
+  SOLANA: 154,
   BNB: 585,
   USDT: 1.0,
+  TETHER: 1.0,
   USDC: 1.0,
   AAPL: 182.4,
 };
@@ -186,6 +203,10 @@ export const Dashboard = () => {
         }
         // Guarantee 1.00 for all stablecoins
         STABLECOINS.forEach((s) => { priceMap[s] = 1.0; });
+        if (priceMap['SOL'] && !priceMap['SOLANA']) priceMap['SOLANA'] = priceMap['SOL'];
+        if (priceMap['BTC'] && !priceMap['BITCOIN']) priceMap['BITCOIN'] = priceMap['BTC'];
+        if (priceMap['ETH'] && !priceMap['ETHEREUM']) priceMap['ETHEREUM'] = priceMap['ETH'];
+        if (priceMap['USDT'] && !priceMap['TETHER']) priceMap['TETHER'] = priceMap['USDT'];
         setPrices((prev) => ({ ...prev, ...priceMap }));
       }
     } catch (e) {}
@@ -215,7 +236,8 @@ export const Dashboard = () => {
     return wallets.reduce((sum, w) => {
       const bal = Number(w.balance);
       if (isNaN(bal) || bal <= 0) return sum;
-      const price = STABLECOINS.has(w.coin) ? 1.0 : (prices[w.coin] ?? 0);
+      const sym = normalizeCoinSymbol(w.coin);
+      const price = STABLECOINS.has(sym) ? 1.0 : (prices[sym] ?? prices[w.coin] ?? 0);
       return sum + bal * price;
     }, 0);
   }, [wallets, prices]);
@@ -563,9 +585,10 @@ export const Dashboard = () => {
             <div>
               {loading ? <p className="text-gray-500 text-sm text-center py-8">Loading...</p>
                 : displayWallets.map(wallet => {
-                    const meta = ASSET_META[wallet.coin] ?? { name: wallet.coin, color: '#888', icon: wallet.coin[0] };
+                    const sym = normalizeCoinSymbol(wallet.coin);
+                    const meta = ASSET_META[sym] ?? ASSET_META[wallet.coin] ?? { name: wallet.coin, color: '#888', icon: wallet.coin[0] };
                     const bal = Number(wallet.balance);
-                    const price = prices[wallet.coin] ?? 0;
+                    const price = STABLECOINS.has(sym) ? 1.0 : (prices[sym] ?? prices[wallet.coin] ?? 0);
                     const val = bal * price;
                     return (
                       <div 
@@ -1010,9 +1033,10 @@ export const Dashboard = () => {
               <div className="space-y-1 pb-4">
                 {loading && <p className="text-gray-500 text-xs py-4">Loading assets...</p>}
                 {!loading && displayWallets.slice(0, 4).map(wallet => {
-                  const meta = ASSET_META[wallet.coin] ?? { name: wallet.coin, color: '#888', icon: wallet.coin[0] };
+                  const sym = normalizeCoinSymbol(wallet.coin);
+                  const meta = ASSET_META[sym] ?? ASSET_META[wallet.coin] ?? { name: wallet.coin, color: '#888', icon: wallet.coin[0] };
                   const balance = Number(wallet.balance);
-                  const price = prices[wallet.coin] ?? 0;
+                  const price = STABLECOINS.has(sym) ? 1.0 : (prices[sym] ?? prices[wallet.coin] ?? 0);
                   const value = balance * price;
 
                   return (
