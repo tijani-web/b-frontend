@@ -107,13 +107,13 @@ const ALL_CONVERT_COINS = ['BTC', 'ETH', 'USDT', 'SOL', 'BNB', 'USDC', 'XRP', 'A
 const MOBILE_TABS = ['Crypto', 'DeFi', 'Mining', 'History'];
 
 const INITIAL_PRICES: Record<string, number> = {
-  BTC: 82180,
-  BITCOIN: 82180,
-  ETH: 3240,
-  ETHEREUM: 3240,
-  SOL: 154,
-  SOLANA: 154,
-  BNB: 585,
+  BTC: 61600,
+  BITCOIN: 61600,
+  ETH: 1745,
+  ETHEREUM: 1745,
+  SOL: 72.5,
+  SOLANA: 72.5,
+  BNB: 576,
   USDT: 1.0,
   TETHER: 1.0,
   USDC: 1.0,
@@ -126,6 +126,7 @@ export const Dashboard = () => {
 
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [prices, setPrices] = useState<Record<string, number>>(INITIAL_PRICES);
+  const [marketStats, setMarketStats] = useState<Record<string, { change24h: number; high24h: number; low24h: number; volume24h: number }>>({});
   const [balanceVisible, setBalanceVisible] = useState(true);
   const [loading, setLoading] = useState(true);
   const [trades, setTrades] = useState<TradeRecord[]>([]);
@@ -184,32 +185,82 @@ export const Dashboard = () => {
   const fetchPrices = async () => {
     try {
       const r = await fetch('/api/market/all', { cache: 'no-store' });
-      if (!r.ok) return;
+      if (!r.ok) throw new Error('API offline');
       const data = await r.json();
       const raw = data.data;
       if (raw) {
         const priceMap: Record<string, number> = {};
+        const statsMap: Record<string, { change24h: number; high24h: number; low24h: number; volume24h: number }> = {};
         if (Array.isArray(raw)) {
           for (const asset of raw) {
             if (asset?.symbol) {
-              priceMap[asset.symbol] = STABLECOINS.has(asset.symbol) ? 1.0 : (Number(asset.price) || 0);
+              const price = STABLECOINS.has(asset.symbol) ? 1.0 : (Number(asset.price) || 0);
+              priceMap[asset.symbol] = price;
+              statsMap[asset.symbol] = {
+                change24h: Number(asset.change24h) || 0,
+                high24h: Number(asset.high24h) || (price * 1.015),
+                low24h: Number(asset.low24h) || (price * 0.985),
+                volume24h: Number(asset.volume24h) || 0,
+              };
             }
           }
         } else if (typeof raw === 'object') {
           for (const [sym, asset] of Object.entries(raw)) {
             const val = (asset as any)?.price;
-            priceMap[sym] = STABLECOINS.has(sym) ? 1.0 : (Number(val) || 0);
+            const price = STABLECOINS.has(sym) ? 1.0 : (Number(val) || 0);
+            priceMap[sym] = price;
+            statsMap[sym] = {
+              change24h: Number((asset as any)?.change24h) || 0,
+              high24h: Number((asset as any)?.high24h) || (price * 1.015),
+              low24h: Number((asset as any)?.low24h) || (price * 0.985),
+              volume24h: Number((asset as any)?.volume24h) || 0,
+            };
           }
         }
         // Guarantee 1.00 for all stablecoins
         STABLECOINS.forEach((s) => { priceMap[s] = 1.0; });
-        if (priceMap['SOL'] && !priceMap['SOLANA']) priceMap['SOLANA'] = priceMap['SOL'];
-        if (priceMap['BTC'] && !priceMap['BITCOIN']) priceMap['BITCOIN'] = priceMap['BTC'];
-        if (priceMap['ETH'] && !priceMap['ETHEREUM']) priceMap['ETHEREUM'] = priceMap['ETH'];
-        if (priceMap['USDT'] && !priceMap['TETHER']) priceMap['TETHER'] = priceMap['USDT'];
+        if (priceMap['SOL'] && !priceMap['SOLANA']) { priceMap['SOLANA'] = priceMap['SOL']; statsMap['SOLANA'] = statsMap['SOL']; }
+        if (priceMap['BTC'] && !priceMap['BITCOIN']) { priceMap['BITCOIN'] = priceMap['BTC']; statsMap['BITCOIN'] = statsMap['BTC']; }
+        if (priceMap['ETH'] && !priceMap['ETHEREUM']) { priceMap['ETHEREUM'] = priceMap['ETH']; statsMap['ETHEREUM'] = statsMap['ETH']; }
+        if (priceMap['USDT'] && !priceMap['TETHER']) { priceMap['TETHER'] = priceMap['USDT']; statsMap['TETHER'] = statsMap['USDT']; }
         setPrices((prev) => ({ ...prev, ...priceMap }));
+        setMarketStats((prev) => ({ ...prev, ...statsMap }));
+        return;
       }
-    } catch (e) {}
+    } catch (e) {
+      // Backend is cold-starting or offline: Direct client-side fetch from CoinGecko
+      try {
+        const ids = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,litecoin,chainlink,tron';
+        const cgRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`);
+        if (cgRes.ok) {
+          const cg = await cgRes.json();
+          const cgMap: Record<string, string> = {
+            bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', binancecoin: 'BNB', ripple: 'XRP',
+            dogecoin: 'DOGE', cardano: 'ADA', 'avalanche-2': 'AVAX', polkadot: 'DOT', litecoin: 'LTC', chainlink: 'LINK', tron: 'TRX'
+          };
+          const priceMap: Record<string, number> = {};
+          const statsMap: Record<string, { change24h: number; high24h: number; low24h: number; volume24h: number }> = {};
+          for (const [id, sym] of Object.entries(cgMap)) {
+            const it = cg[id];
+            if (it && typeof it.usd === 'number') {
+              priceMap[sym] = it.usd;
+              statsMap[sym] = {
+                change24h: Number((it.usd_24h_change || 0).toFixed(2)),
+                high24h: Number((it.usd * 1.015).toFixed(it.usd > 100 ? 2 : 4)),
+                low24h: Number((it.usd * 0.985).toFixed(it.usd > 100 ? 2 : 4)),
+                volume24h: it.usd_24h_vol || 0,
+              };
+            }
+          }
+          priceMap['USDT'] = 1.0; priceMap['USDC'] = 1.0;
+          if (priceMap['SOL']) { priceMap['SOLANA'] = priceMap['SOL']; statsMap['SOLANA'] = statsMap['SOL']; }
+          if (priceMap['BTC']) { priceMap['BITCOIN'] = priceMap['BTC']; statsMap['BITCOIN'] = statsMap['BTC']; }
+          if (priceMap['ETH']) { priceMap['ETHEREUM'] = priceMap['ETH']; statsMap['ETHEREUM'] = statsMap['ETH']; }
+          setPrices(prev => ({ ...prev, ...priceMap }));
+          setMarketStats(prev => ({ ...prev, ...statsMap }));
+        }
+      } catch {}
+    }
   };
 
   useEffect(() => {
@@ -674,12 +725,14 @@ export const Dashboard = () => {
                   <span className="w-2 h-2 rounded-full bg-[#26A17B] animate-pulse shrink-0" />
                   <span className="font-bold text-white text-xs">{selectedAsset}/USDT</span>
                   <span className="font-mono font-bold text-[#26A17B] text-sm">
-                    ${(prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${(prices[selectedAsset] || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] font-mono">
-                  <span className="text-[#26A17B] font-bold">+2.34%</span>
-                  <span className="text-gray-500">H: <span className="text-gray-300">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
+                  <span className={`font-bold ${(marketStats[selectedAsset]?.change24h ?? 0) >= 0 ? 'text-[#26A17B]' : 'text-red-500'}`}>
+                    {(marketStats[selectedAsset]?.change24h ?? 0) >= 0 ? '+' : ''}{(marketStats[selectedAsset]?.change24h ?? 0).toFixed(2)}%
+                  </span>
+                  <span className="text-gray-500">H: <span className="text-gray-300">${(marketStats[selectedAsset]?.high24h || ((prices[selectedAsset] || 0) * 1.015)).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span></span>
                 </div>
               </div>
             </div>
@@ -1135,24 +1188,40 @@ export const Dashboard = () => {
                     <span className="font-bold text-white text-xs">{selectedAsset}/USDT Live</span>
                   </div>
                   <span className="font-mono font-bold text-[#26A17B] text-sm">
-                    ${(prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ${(prices[selectedAsset] || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#26A17B]/10 text-[#26A17B] border border-[#26A17B]/20">
-                    +2.34%
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    (marketStats[selectedAsset]?.change24h ?? 0) >= 0
+                      ? 'bg-[#26A17B]/10 text-[#26A17B] border-[#26A17B]/20'
+                      : 'bg-red-500/10 text-red-500 border-red-500/20'
+                  }`}>
+                    {(marketStats[selectedAsset]?.change24h ?? 0) >= 0 ? '+' : ''}{(marketStats[selectedAsset]?.change24h ?? 0).toFixed(2)}%
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-400 text-xs font-mono">
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">24h High:</span>
-                    <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 1.025).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    <span className="text-white font-medium">
+                      ${(marketStats[selectedAsset]?.high24h || ((prices[selectedAsset] || 0) * 1.015)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">24h Low:</span>
-                    <span className="text-white font-medium">${((prices[selectedAsset] || (selectedAsset === 'BTC' ? 85367 : 100)) * 0.975).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    <span className="text-white font-medium">
+                      ${(marketStats[selectedAsset]?.low24h || ((prices[selectedAsset] || 0) * 0.985)).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <span className="text-gray-500">24h Vol:</span>
-                    <span className="text-white font-medium">1.48B USDT</span>
+                    <span className="text-white font-medium">
+                      {(() => {
+                        const v = marketStats[selectedAsset]?.volume24h;
+                        if (!v || v <= 0) return '1.48B USDT';
+                        if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B USDT`;
+                        if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M USDT`;
+                        return `${v.toLocaleString()} USDT`;
+                      })()}
+                    </span>
                   </div>
                 </div>
               </div>

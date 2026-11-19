@@ -312,7 +312,7 @@ export const Trade = () => {
   const fetchPrices = async () => {
     try {
       const r = await fetch('/api/market/all', { cache: 'no-store' });
-      if (!r.ok) return;
+      if (!r.ok) throw new Error('API offline');
       const data = await r.json();
       const raw = data.data;
       if (raw) {
@@ -328,9 +328,38 @@ export const Trade = () => {
         }
         priceMap['USDT'] = 1.0;
         priceMap['USDC'] = 1.0;
+        if (priceMap['SOL']) priceMap['SOLANA'] = priceMap['SOL'];
+        if (priceMap['BTC']) priceMap['BITCOIN'] = priceMap['BTC'];
+        if (priceMap['ETH']) priceMap['ETHEREUM'] = priceMap['ETH'];
         setPrices(prev => ({ ...prev, ...priceMap }));
+        return;
       }
-    } catch {}
+    } catch {
+      try {
+        const ids = 'bitcoin,ethereum,solana,binancecoin,ripple,dogecoin,cardano,avalanche-2,polkadot,litecoin,chainlink,tron';
+        const cgRes = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+        if (cgRes.ok) {
+          const cg = await cgRes.json();
+          const cgMap: Record<string, string> = {
+            bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', binancecoin: 'BNB', ripple: 'XRP',
+            dogecoin: 'DOGE', cardano: 'ADA', 'avalanche-2': 'AVAX', polkadot: 'DOT', litecoin: 'LTC', chainlink: 'LINK', tron: 'TRX'
+          };
+          const priceMap: Record<string, number> = {};
+          for (const [id, sym] of Object.entries(cgMap)) {
+            const it = cg[id];
+            if (it && typeof it.usd === 'number') {
+              priceMap[sym] = it.usd;
+            }
+          }
+          priceMap['USDT'] = 1.0;
+          priceMap['USDC'] = 1.0;
+          if (priceMap['SOL']) priceMap['SOLANA'] = priceMap['SOL'];
+          if (priceMap['BTC']) priceMap['BITCOIN'] = priceMap['BTC'];
+          if (priceMap['ETH']) priceMap['ETHEREUM'] = priceMap['ETH'];
+          setPrices(prev => ({ ...prev, ...priceMap }));
+        }
+      } catch {}
+    }
   };
 
   useEffect(() => {
