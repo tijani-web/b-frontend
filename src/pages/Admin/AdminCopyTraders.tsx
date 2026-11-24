@@ -221,7 +221,16 @@ export const AdminCopyTraders: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-[#222] flex items-center justify-center text-lg border border-[#333] overflow-hidden shrink-0">
                           {t.avatar?.startsWith('http') || t.avatar?.startsWith('/uploads') || t.avatar?.startsWith('data:') ? (
-                            <img src={t.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${t.avatar}` : t.avatar} alt={t.name} className="w-full h-full object-cover" />
+                            <img
+                              src={t.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${t.avatar}` : t.avatar}
+                              alt={t.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                if (target.parentElement) target.parentElement.innerText = '👤';
+                              }}
+                            />
                           ) : (
                             t.avatar
                           )}
@@ -314,7 +323,16 @@ export const AdminCopyTraders: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-[#333] flex items-center justify-center text-xl overflow-hidden shrink-0">
                       {modal.form.avatar?.startsWith('http') || modal.form.avatar?.startsWith('/uploads') || modal.form.avatar?.startsWith('data:') ? (
-                        <img src={modal.form.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${modal.form.avatar}` : modal.form.avatar} alt="Preview" className="w-full h-full object-cover" />
+                        <img
+                          src={modal.form.avatar.startsWith('/uploads') ? `${BASE_ORIGIN}${modal.form.avatar}` : modal.form.avatar}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = 'none';
+                            if (target.parentElement) target.parentElement.innerText = '👤';
+                          }}
+                        />
                       ) : (
                         modal.form.avatar || '🤖'
                       )}
