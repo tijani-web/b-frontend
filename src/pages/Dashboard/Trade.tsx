@@ -621,7 +621,7 @@ export const Trade = () => {
 
   // ─── Right Panel (shared between mobile & desktop) ────────────────────────
   const renderTradePanel = () => (
-    <div className="relative flex flex-col h-full bg-[#0A0A0A]">
+    <div className="relative flex flex-col w-full bg-[#0A0A0A]">
       {/* Asset Picker Overlay */}
       {showAssetPicker && (
         <AssetPicker
@@ -632,7 +632,7 @@ export const Trade = () => {
         />
       )}
 
-      <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+      <div className="p-4 sm:p-5 flex flex-col gap-4">
         {/* Buy / Sell / Convert tabs */}
         <div className="flex bg-[#141414] rounded-xl p-1">
           {(['buy', 'sell', 'convert'] as const).map(tab => (
@@ -923,7 +923,7 @@ export const Trade = () => {
       <Sidebar />
 
       {/* ══════════ MOBILE LAYOUT ══════════ */}
-      <div className="flex md:hidden flex-col w-full h-screen bg-[#0A0A0A] overflow-y-auto pb-24">
+      <div className="flex md:hidden flex-col w-full min-h-screen bg-[#0A0A0A] pb-24">
         {/* Mobile Header */}
         <div className="flex items-center justify-between px-5 pt-10 pb-4">
           <div className="flex items-center gap-3">
@@ -994,7 +994,7 @@ export const Trade = () => {
         </div>
 
         {/* Trade Panel */}
-        <div className="mx-4 bg-[#141414] border border-[#222] rounded-2xl overflow-hidden relative">
+        <div className="mx-4 bg-[#141414] border border-[#222] rounded-2xl relative">
           {renderTradePanel()}
         </div>
 
@@ -1068,18 +1068,25 @@ export const Trade = () => {
               />
             </div>
 
-            {/* My Trades / Positions section */}
+            {/* My Trades / Positions section — visible on lg+ desktop right here */}
             {!chartExpanded && (
-              <div className="p-6 border-t border-[#1a1a1a]">
+              <div className="hidden lg:block p-6 border-t border-[#1a1a1a]">
                 {renderMyTradesSection()}
               </div>
             )}
           </div>
 
-          {/* Right: Trade Panel — side-by-side on lg+, stacked below on smaller screens */}
-          <div className="w-full bg-[#0A0A0A] flex flex-col">
+          {/* Right: Trade Panel — side-by-side on lg+, stacked directly under chart on smaller desktop screens */}
+          <div className="w-full bg-[#0A0A0A] flex flex-col border-b lg:border-b-0 border-[#1a1a1a]">
             {renderTradePanel()}
           </div>
+
+          {/* My Trades / Positions section — visible on < lg screens below the Trade Panel */}
+          {!chartExpanded && (
+            <div className="block lg:hidden p-6 col-span-1 border-t border-[#1a1a1a]">
+              {renderMyTradesSection()}
+            </div>
+          )}
         </div>
       </div>
 
